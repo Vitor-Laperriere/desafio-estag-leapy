@@ -18,9 +18,7 @@ function Badge({
     gray: "bg-gray-100 text-gray-800",
   };
   return (
-    <span
-      className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[color]}`}
-    >
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[color]}`}>
       {children}
     </span>
   );
@@ -138,20 +136,18 @@ export function TalentsTable({
                     {t.orchestratorState ?? "—"}
                   </Badge>
                 </td>
-                {t.pdiPlanReady ? (
-                  <Badge color="green">Sim</Badge>
-                ) : (
-                  <Badge>Não</Badge>
-                )}
+                <td className="px-3 py-2">
+                  <Badge color={t.pdiPlanReady ? "green" : "gray"}>
+                    {t.pdiPlanReady ? "Sim" : "Não"}
+                  </Badge>
+                </td>
                 <td className="px-3 py-2">
                   {t.leader?.position ?? "—"}
                   {t.leader?.department ? ` / ${t.leader.department}` : ""}
                 </td>
                 <td className="px-3 py-2">{t.targetRole?.name ?? "—"}</td>
                 <td className="px-3 py-2 text-xs text-gray-600">
-                  {t.startDate
-                    ? new Date(t.startDate).toLocaleDateString()
-                    : "—"}
+                  {t.startDate ? new Date(t.startDate).toLocaleDateString() : "—"}
                 </td>
                 <td className="px-3 py-2 text-xs text-gray-600">
                   {t.endDate ? new Date(t.endDate).toLocaleDateString() : "—"}
@@ -162,7 +158,6 @@ export function TalentsTable({
         </table>
       </div>
 
-      {/* paginação */}
       <nav className="flex items-center gap-3 text-sm" aria-label="Paginação">
         <button
           className="rounded border px-2 py-1 disabled:opacity-40"

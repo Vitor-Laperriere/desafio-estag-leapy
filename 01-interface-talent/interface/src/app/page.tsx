@@ -1,44 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useTalents } from "@/hooks/useTalents";
 import { TalentsTable } from "@/modules/talent/ui/components/TalentsTable";
 
 export default function HomePage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [sort, setSort] = useState("-date_updated");
 
-  const [searchEmail, setSearchEmail] = useState(""); // e-mail
-  const [generalQ, setGeneralQ] = useState(""); // geral (search=)
+  const [searchEmail, setSearchEmail] = useState("");
+  const [generalQ, setGeneralQ] = useState("");
   const [department, setDepartment] = useState("");
   const [orchestrator, setOrchestrator] = useState("");
   const [pdi, setPdi] = useState("");
+  const [status, setStatus] = useState("");
   const [id, setId] = useState("");
   const [userId, setUserId] = useState("");
   const [phone, setPhone] = useState("");
   const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [onlyVerifiedPhone, setOnlyVerifiedPhone] = useState(false);
   const [gradCourse, setGradCourse] = useState("");
   const [gradInst, setGradInst] = useState("");
-  const [currentStatus, setCurrentStatus] = useState("");
   const [leaderId, setLeaderId] = useState("");
   const [targetRoleId, setTargetRoleId] = useState("");
+  const [noLeader, setNoLeader] = useState(false);
+  const [noRole, setNoRole] = useState(false);
   const [currentCycle, setCurrentCycle] = useState("");
   const [currentCycleId, setCurrentCycleId] = useState("");
+  const [activeFrom, setActiveFrom] = useState("");
+  const [activeTo, setActiveTo] = useState("");
 
-  // números (range)
   const [resetMin, setResetMin] = useState("");
   const [resetMax, setResetMax] = useState("");
   const [cycleMin, setCycleMin] = useState("");
   const [cycleMax, setCycleMax] = useState("");
 
-  // Datas (range)
   const [dateCreatedFrom, setDateCreatedFrom] = useState("");
   const [dateCreatedTo, setDateCreatedTo] = useState("");
   const [dateUpdatedFrom, setDateUpdatedFrom] = useState("");
   const [dateUpdatedTo, setDateUpdatedTo] = useState("");
   const [dateDeletedFrom, setDateDeletedFrom] = useState("");
   const [dateDeletedTo, setDateDeletedTo] = useState("");
-  const [dateDeletedIsNull, setDateDeletedIsNull] = useState(""); // "", "true", "false"
+  const [deletedFilter, setDeletedFilter] =
+    useState<"active" | "include" | "only">("active");
   const [startDateFrom, setStartDateFrom] = useState("");
   const [startDateTo, setStartDateTo] = useState("");
   const [endDateFrom, setEndDateFrom] = useState("");
@@ -47,84 +52,120 @@ export default function HomePage() {
   const [lastStatusChangeTo, setLastStatusChangeTo] = useState("");
   const [lastResetFrom, setLastResetFrom] = useState("");
   const [lastResetTo, setLastResetTo] = useState("");
+  type DateFieldConfig = {
+    key: string;
+    label: string;
+    value: string;
+    setter: Dispatch<SetStateAction<string>>;
+  };
+  const dateFieldConfigs: DateFieldConfig[] = [
+    { key: "date_created_from", label: "Criado ≥", value: dateCreatedFrom, setter: setDateCreatedFrom },
+    { key: "date_created_to", label: "Criado ≤", value: dateCreatedTo, setter: setDateCreatedTo },
+    { key: "date_updated_from", label: "Atualizado ≥", value: dateUpdatedFrom, setter: setDateUpdatedFrom },
+    { key: "date_updated_to", label: "Atualizado ≤", value: dateUpdatedTo, setter: setDateUpdatedTo },
+    { key: "active_from", label: "Vigente desde (sobreposição)", value: activeFrom, setter: setActiveFrom },
+    { key: "active_to", label: "Vigente até (sobreposição)", value: activeTo, setter: setActiveTo },
+    { key: "start_date_from", label: "Início ≥", value: startDateFrom, setter: setStartDateFrom },
+    { key: "start_date_to", label: "Início ≤", value: startDateTo, setter: setStartDateTo },
+    { key: "end_date_from", label: "Fim ≥", value: endDateFrom, setter: setEndDateFrom },
+    { key: "end_date_to", label: "Fim ≤", value: endDateTo, setter: setEndDateTo },
+    { key: "last_status_change_from", label: "Mudança status ≥", value: lastStatusChangeFrom, setter: setLastStatusChangeFrom },
+    { key: "last_status_change_to", label: "Mudança status ≤", value: lastStatusChangeTo, setter: setLastStatusChangeTo },
+    { key: "last_reset_from", label: "Último reset ≥", value: lastResetFrom, setter: setLastResetFrom },
+    { key: "last_reset_to", label: "Último reset ≤", value: lastResetTo, setter: setLastResetTo },
+    { key: "date_deleted_from", label: "Deletado ≥", value: dateDeletedFrom, setter: setDateDeletedFrom },
+    { key: "date_deleted_to", label: "Deletado ≤", value: dateDeletedTo, setter: setDateDeletedTo },
+  ];
+
   const { talents, total, isLoading, isError, errorDetail } = useTalents({
     page,
     limit,
+    sort,
     email: searchEmail,
     q: generalQ,
     department,
-    orchestrator_state: orchestrator,
-    pdi_plan_ready: pdi,
+    orchestrator,
+    pdi,
+    status,
     id,
-    user_id: userId,
-    phone_number: phone,
-    verified_phone_number: verifiedPhone,
-    graduation_course: gradCourse,
-    graduation_institution: gradInst,
-    current_status: currentStatus,
-    leader_id: leaderId,
-    target_role_id: targetRoleId,
-    current_cycle: currentCycle,
-    current_cycle_id: currentCycleId,
-    // números
-    reset_count_min: resetMin,
-    reset_count_max: resetMax,
-    current_cycle_min: cycleMin,
-    current_cycle_max: cycleMax,
-    // datas
-    date_created_from: dateCreatedFrom,
-    date_created_to: dateCreatedTo,
-    date_updated_from: dateUpdatedFrom,
-    date_updated_to: dateUpdatedTo,
-    date_deleted_from: dateDeletedFrom,
-    date_deleted_to: dateDeletedTo,
-    date_deleted_is_null: dateDeletedIsNull,
-    start_date_from: startDateFrom,
-    start_date_to: startDateTo,
-    end_date_from: endDateFrom,
-    end_date_to: endDateTo,
-    last_status_change_from: lastStatusChangeFrom,
-    last_status_change_to: lastStatusChangeTo,
-    last_reset_from: lastResetFrom,
-    last_reset_to: lastResetTo,
+    userId,
+    phone,
+    verifiedPhone,
+    onlyVerifiedPhone: onlyVerifiedPhone ? true : undefined,
+    graduationCourse: gradCourse,
+    graduationInstitution: gradInst,
+    leaderId,
+    roleId: targetRoleId,
+    noLeader: noLeader ? true : undefined,
+    noRole: noRole ? true : undefined,
+    currentCycle,
+    currentCycleId,
+    resetCountMin: resetMin,
+    resetCountMax: resetMax,
+    currentCycleMin: cycleMin,
+    currentCycleMax: cycleMax,
+    dateCreatedFrom,
+    dateCreatedTo,
+    dateUpdatedFrom,
+    dateUpdatedTo,
+    dateDeletedFrom,
+    dateDeletedTo,
+    dateDeletedIsNull: deletedFilter === "only" ? "false" : undefined,
+    withDeleted: deletedFilter === "include" ? true : undefined,
+    startFrom: startDateFrom,
+    startTo: startDateTo,
+    endFrom: endDateFrom,
+    endTo: endDateTo,
+    activeFrom: activeFrom || undefined,
+    activeTo: activeTo || undefined,
+    lastStatusChangeFrom,
+    lastStatusChangeTo,
+    lastResetFrom,
+    lastResetTo,
   });
 
   const resetFilters = () => {
     setPage(1);
+    setSort("-date_updated");
     setSearchEmail("");
     setGeneralQ("");
     setDepartment("");
     setOrchestrator("");
     setPdi("");
+    setStatus("");
     setId("");
     setUserId("");
     setPhone("");
     setVerifiedPhone("");
-    +setGradCourse("");
+    setOnlyVerifiedPhone(false);
+    setGradCourse("");
     setGradInst("");
-    +setCurrentStatus("");
     setLeaderId("");
     setTargetRoleId("");
-    +setCurrentCycle("");
+    setNoLeader(false);
+    setNoRole(false);
+    setCurrentCycle("");
     setCurrentCycleId("");
-    +setResetMin("");
+    setActiveFrom("");
+    setActiveTo("");
+    setResetMin("");
     setResetMax("");
     setCycleMin("");
     setCycleMax("");
-    +setDateCreatedFrom("");
+    setDateCreatedFrom("");
     setDateCreatedTo("");
-    +setDateUpdatedFrom("");
+    setDateUpdatedFrom("");
     setDateUpdatedTo("");
-    +setDateDeletedFrom("");
+    setDateDeletedFrom("");
     setDateDeletedTo("");
-    setDateDeletedIsNull("");
-    +setStartDateFrom("");
+    setDeletedFilter("active");
+    setStartDateFrom("");
     setStartDateTo("");
-    +setEndDateFrom("");
+    setEndDateFrom("");
     setEndDateTo("");
-    +setLastStatusChangeFrom("");
+    setLastStatusChangeFrom("");
     setLastStatusChangeTo("");
-    +setLastResetFrom("");
+    setLastResetFrom("");
     setLastResetTo("");
   };
 
@@ -137,7 +178,6 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* filtros */}
       <section className="flex flex-wrap gap-4 items-end border rounded-lg p-4 bg-gray-50">
         <div className="flex flex-col text-sm">
           <label className="text-gray-700 font-medium">Buscar por e-mail</label>
@@ -218,6 +258,24 @@ export default function HomePage() {
           </select>
         </div>
 
+        <div className="flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Status</label>
+          <select
+            className="rounded border px-2 py-1 text-sm"
+            value={status}
+            onChange={(e) => {
+              setPage(1);
+              setStatus(e.target.value);
+            }}
+          >
+            <option value="">(todos)</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="PENDING_FIRST_ACCESS">PENDING_FIRST_ACCESS</option>
+            <option value="INACTIVE">INACTIVE</option>
+            <option value="ONBOARDING">ONBOARDING</option>
+          </select>
+        </div>
+
         <details className="w-full">
           <summary className="cursor-pointer text-sm text-gray-700 font-medium my-2">
             Filtros avançados
@@ -269,7 +327,7 @@ export default function HomePage() {
               />
             </div>
             <div className="flex flex-col text-sm">
-              <label className="font-medium">Telefone verificado</label>
+              <label className="font-medium">Telefone verificado (valor)</label>
               <input
                 className="rounded border px-2 py-1"
                 value={verifiedPhone}
@@ -303,23 +361,21 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-col text-sm">
-              <label className="font-medium">Status atual</label>
-              <select
-                className="rounded border px-2 py-1"
-                value={currentStatus}
-                onChange={(e) => {
-                  setPage(1);
-                  setCurrentStatus(e.target.value);
-                }}
-              >
-                <option value="">(todos)</option>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="PENDING_FIRST_ACCESS">
-                  PENDING_FIRST_ACCESS
-                </option>
-                <option value="INACTIVE">INACTIVE</option>
-                <option value="ONBOARDING">ONBOARDING</option>
-              </select>
+              <label className="font-medium">Somente telefones verificados</label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={onlyVerifiedPhone}
+                  onChange={(e) => {
+                    setPage(1);
+                    setOnlyVerifiedPhone(e.target.checked);
+                  }}
+                />
+                <span className="text-xs text-gray-600">
+                  Oculta registros sem número validado
+                </span>
+              </div>
             </div>
             <div className="flex flex-col text-sm">
               <label className="font-medium">Leader ID</label>
@@ -333,6 +389,23 @@ export default function HomePage() {
               />
             </div>
             <div className="flex flex-col text-sm">
+              <label className="font-medium">Sem líder</label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={noLeader}
+                  onChange={(e) => {
+                    setPage(1);
+                    setNoLeader(e.target.checked);
+                  }}
+                />
+                <span className="text-xs text-gray-600">
+                  Filtra talentos sem líder associado
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col text-sm">
               <label className="font-medium">Target Role ID</label>
               <input
                 className="rounded border px-2 py-1"
@@ -343,8 +416,24 @@ export default function HomePage() {
                 }}
               />
             </div>
+            <div className="flex flex-col text-sm">
+              <label className="font-medium">Sem cargo alvo</label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={noRole}
+                  onChange={(e) => {
+                    setPage(1);
+                    setNoRole(e.target.checked);
+                  }}
+                />
+                <span className="text-xs text-gray-600">
+                  Exibe talentos sem cargo alvo vinculado
+                </span>
+              </div>
+            </div>
 
-            {/* Números */}
             <div className="flex flex-col text-sm">
               <label className="font-medium">Reset count (min)</label>
               <input
@@ -406,96 +495,57 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Datas: use date (dia) para simplificar; se quiser use datetime-local */}
-            {[
-              [
-                "date_created_from",
-                "Criado ≥",
-                dateCreatedFrom,
-                setDateCreatedFrom,
-              ],
-              ["date_created_to", "Criado ≤", dateCreatedTo, setDateCreatedTo],
-              [
-                "date_updated_from",
-                "Atualizado ≥",
-                dateUpdatedFrom,
-                setDateUpdatedFrom,
-              ],
-              [
-                "date_updated_to",
-                "Atualizado ≤",
-                dateUpdatedTo,
-                setDateUpdatedTo,
-              ],
-              ["start_date_from", "Início ≥", startDateFrom, setStartDateFrom],
-              ["start_date_to", "Início ≤", startDateTo, setStartDateTo],
-              ["end_date_from", "Fim ≥", endDateFrom, setEndDateFrom],
-              ["end_date_to", "Fim ≤", endDateTo, setEndDateTo],
-              [
-                "last_status_change_from",
-                "Mudança status ≥",
-                lastStatusChangeFrom,
-                setLastStatusChangeFrom,
-              ],
-              [
-                "last_status_change_to",
-                "Mudança status ≤",
-                lastStatusChangeTo,
-                setLastStatusChangeTo,
-              ],
-              [
-                "last_reset_from",
-                "Último reset ≥",
-                lastResetFrom,
-                setLastResetFrom,
-              ],
-              ["last_reset_to", "Último reset ≤", lastResetTo, setLastResetTo],
-              [
-                "date_deleted_from",
-                "Deletado ≥",
-                dateDeletedFrom,
-                setDateDeletedFrom,
-              ],
-              [
-                "date_deleted_to",
-                "Deletado ≤",
-                dateDeletedTo,
-                setDateDeletedTo,
-              ],
-            ].map(([key, label, val, setter]) => (
-              <div key={key as string} className="flex flex-col text-sm">
-                <label className="font-medium">{label as string}</label>
+            {dateFieldConfigs.map(({ key, label, value, setter }) => (
+              <div key={key} className="flex flex-col text-sm">
+                <label className="font-medium">{label}</label>
                 <input
                   type="date"
                   className="rounded border px-2 py-1"
-                  value={val as string}
+                  value={value}
                   onChange={(e) => {
                     setPage(1);
-                    (setter as any)(e.target.value);
+                    setter(e.target.value);
                   }}
                 />
               </div>
             ))}
             <div className="flex flex-col text-sm">
-              <label className="font-medium">Deletado é nulo?</label>
+              <label className="font-medium">Registros excluídos</label>
               <select
                 className="rounded border px-2 py-1"
-                value={dateDeletedIsNull}
+                value={deletedFilter}
                 onChange={(e) => {
                   setPage(1);
-                  setDateDeletedIsNull(e.target.value);
+                  setDeletedFilter(e.target.value as "active" | "include" | "only");
                 }}
               >
-                <option value="">(ignorar)</option>
-                <option value="true">Sim (apenas nulos)</option>
-                <option value="false">Não (apenas não-nulos)</option>
+                <option value="active">Ocultar excluídos (padrão)</option>
+                <option value="include">Incluir excluídos</option>
+                <option value="only">Somente excluídos</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Soft delete é filtrado automaticamente; ajuste se precisar auditar exclusões.
+              </p>
             </div>
           </div>
         </details>
-        
 
-        
+        <div className="flex flex-col text-sm">
+          <label className="text-sm text-gray-700">Ordenar por</label>
+          <select
+            className="rounded border px-2 py-1 text-sm"
+            value={sort}
+            onChange={(e) => {
+              setPage(1);
+              setSort(e.target.value);
+            }}
+          >
+            <option value="-date_updated">Mais recentes (atualização)</option>
+            <option value="-last_status_change_at">Mudanças de status recentes</option>
+            <option value="start_date">Início (mais antigo primeiro)</option>
+            <option value="end_date">Fim (mais antigo primeiro)</option>
+          </select>
+        </div>
 
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-700">Por página</label>
