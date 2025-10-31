@@ -4,19 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 
 export type Talent = {
   id: string;
-  department: string | null;
-  current_status: string | null;
-  orchestrator_state: string | null;
-  pdi_plan_ready: boolean | null;
-  start_date: string | null;
-  end_date: string | null;
-  user_id?: { email?: string };
-  leader_id?: {
-    id: number;
-    department: string | null;
-    position: string | null;
-  };
-  target_role_id?: { id: number; name: string; description: string | null };
+  userEmail?: string | null;
+  department?: string | null;
+  currentStatus?: string | null;
+  orchestratorState?: string | null;
+  pdiPlanReady?: boolean | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  leader?: { id: number; department?: string | null; position?: string | null } | null;
+  targetRole?: { id: number; name: string; description?: string | null } | null;
 };
 
 export type TalentsResponse = {

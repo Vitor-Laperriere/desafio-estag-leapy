@@ -1,10 +1,15 @@
-
 "use client";
 
 import React from "react";
 import { Talent } from "@/hooks/useTalents";
 
-function Badge({ children, color = "gray" }: { children: React.ReactNode; color?: "green"|"yellow"|"red"|"blue"|"gray" }) {
+function Badge({
+  children,
+  color = "gray",
+}: {
+  children: React.ReactNode;
+  color?: "green" | "yellow" | "red" | "blue" | "gray";
+}) {
   const map: Record<string, string> = {
     green: "bg-green-100 text-green-800",
     yellow: "bg-yellow-100 text-yellow-800",
@@ -12,17 +17,30 @@ function Badge({ children, color = "gray" }: { children: React.ReactNode; color?
     blue: "bg-blue-100 text-blue-800",
     gray: "bg-gray-100 text-gray-800",
   };
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[color]}`}>{children}</span>;
+  return (
+    <span
+      className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[color]}`}
+    >
+      {children}
+    </span>
+  );
 }
 
-function statusColor(s?: string | null): "green"|"yellow"|"red"|"blue"|"gray" {
+function statusColor(
+  s?: string | null
+): "green" | "yellow" | "red" | "blue" | "gray" {
   switch (s) {
-    case "ACTIVE": return "green";
-    case "ONBOARDING": return "blue";
+    case "ACTIVE":
+      return "green";
+    case "ONBOARDING":
+      return "blue";
     case "PENDING_FIRST_ACCESS":
-    case "PENDING": return "yellow";
-    case "INACTIVE": return "red";
-    default: return "gray";
+    case "PENDING":
+      return "yellow";
+    case "INACTIVE":
+      return "red";
+    default:
+      return "gray";
   }
 }
 
@@ -63,7 +81,10 @@ export function TalentsTable({
 
   if (isError) {
     return (
-      <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+      <div
+        role="alert"
+        className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800"
+      >
         <p className="font-semibold">Erro ao carregar talentos</p>
         {errorDetail ? <p className="text-sm mt-1">{errorDetail}</p> : null}
       </div>
@@ -74,7 +95,9 @@ export function TalentsTable({
     return (
       <div className="rounded-lg border border-gray-200 p-6 bg-white">
         <p className="font-medium">Nenhum talento encontrado.</p>
-        <p className="text-sm text-gray-600">Ajuste os filtros ou limpe a busca.</p>
+        <p className="text-sm text-gray-600">
+          Ajuste os filtros ou limpe a busca.
+        </p>
       </div>
     );
   }
@@ -103,24 +126,35 @@ export function TalentsTable({
           <tbody className="divide-y divide-gray-200 bg-white">
             {talents.map((t) => (
               <tr key={t.id} className="odd:bg-white even:bg-gray-50">
-                <td className="px-3 py-2 font-medium">{t.user_id?.email ?? "—"}</td>
+                <td className="px-3 py-2 font-medium">{t.userEmail ?? "—"}</td>
                 <td className="px-3 py-2">{t.department ?? "—"}</td>
                 <td className="px-3 py-2">
-                  <Badge color={statusColor(t.current_status)}>{t.current_status ?? "—"}</Badge>
+                  <Badge color={statusColor(t.currentStatus)}>
+                    {t.currentStatus ?? "—"}
+                  </Badge>
                 </td>
                 <td className="px-3 py-2">
-                  <Badge color={statusColor(t.orchestrator_state)}>{t.orchestrator_state ?? "—"}</Badge>
+                  <Badge color={statusColor(t.orchestratorState)}>
+                    {t.orchestratorState ?? "—"}
+                  </Badge>
                 </td>
-                <td className="px-3 py-2">{t.pdi_plan_ready ? <Badge color="green">Sim</Badge> : <Badge>Não</Badge>}</td>
+                {t.pdiPlanReady ? (
+                  <Badge color="green">Sim</Badge>
+                ) : (
+                  <Badge>Não</Badge>
+                )}
                 <td className="px-3 py-2">
-                  {t.leader_id?.position ?? "—"}{t.leader_id?.department ? ` / ${t.leader_id.department}` : ""}
+                  {t.leader?.position ?? "—"}
+                  {t.leader?.department ? ` / ${t.leader.department}` : ""}
                 </td>
-                <td className="px-3 py-2">{t.target_role_id?.name ?? "—"}</td>
+                <td className="px-3 py-2">{t.targetRole?.name ?? "—"}</td>
                 <td className="px-3 py-2 text-xs text-gray-600">
-                  {t.start_date ? new Date(t.start_date).toLocaleDateString() : "—"}
+                  {t.startDate
+                    ? new Date(t.startDate).toLocaleDateString()
+                    : "—"}
                 </td>
                 <td className="px-3 py-2 text-xs text-gray-600">
-                  {t.end_date ? new Date(t.end_date).toLocaleDateString() : "—"}
+                  {t.endDate ? new Date(t.endDate).toLocaleDateString() : "—"}
                 </td>
               </tr>
             ))}
@@ -138,7 +172,9 @@ export function TalentsTable({
         >
           ← Anterior
         </button>
-        <span>Página {page} / {totalPages}</span>
+        <span>
+          Página {page} / {totalPages}
+        </span>
         <button
           className="rounded border px-2 py-1 disabled:opacity-40"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}

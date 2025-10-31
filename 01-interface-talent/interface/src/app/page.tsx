@@ -1,9 +1,8 @@
-// src/app/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useTalents } from "@/hooks/useTalents";
-import { TalentsTable } from "@/components/TalentsTable";
+import { TalentsTable } from "@/modules/talent/ui/components/TalentsTable";
 
 export default function HomePage() {
   const [page, setPage] = useState(1);
