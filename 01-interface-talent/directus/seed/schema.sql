@@ -1,3 +1,7 @@
+
+-- Habilita gen_random_uuid() (idempotente)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Schemas fornecidos pelo usuário
 
 create table if not exists public.internship_leaders (
@@ -46,7 +50,7 @@ create table if not exists public.talents (
   constraint talents_phone_number_unique unique (phone_number),
   constraint talents_user_id_unique unique (user_id),
   constraint talents_leader_id_foreign foreign key (leader_id) references internship_leaders (id) on delete set null,
-  constraint talents_target_role_id_foreign foreign key (target_role_id) references target_roles (id) on delete set null,
+  -- constraint talents_target_role_id_foreign foreign key (target_role_id) references target_roles (id) on delete set null,
   constraint talents_user_id_foreign foreign key (user_id) references directus_users (id)
 ) tablespace pg_default;
 
@@ -73,8 +77,14 @@ create table if not exists public.target_roles (
   required_skills json null,
   talent_current_skills json null,
   match real null default '0'::real,
-  constraint target_roles_pkey primary key (id),
-  constraint target_roles_talent_id_foreign foreign key (talent_id) references talents (id) on delete cascade
+  constraint target_roles_pkey primary key (id)
+  -- constraint target_roles_talent_id_foreign foreign key (talent_id) references talents (id) on delete cascade
 ) tablespace pg_default;
 
+ALTER TABLE public.talents
+  ADD CONSTRAINT talents_target_role_id_foreign
+  FOREIGN KEY (target_role_id) REFERENCES public.target_roles (id) ON DELETE SET NULL;
 
+ALTER TABLE public.target_roles
+  ADD CONSTRAINT target_roles_talent_id_foreign
+  FOREIGN KEY (talent_id) REFERENCES public.talents (id) ON DELETE CASCADE;
