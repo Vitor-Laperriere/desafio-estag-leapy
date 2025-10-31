@@ -8,7 +8,11 @@ export type Talent = {
   userLastName?: string | null;
   userEmail?: string | null;
   graduationCourse?: string | null;
+  graduationInstitution?: string | null;
   currentSkills?: string | string[] | null;
+  resetCount?: number | null;
+  currentCycleId?: string | null;
+  currentCycle?: number | null;
   department?: string | null;
   currentStatus?: string | null;
   orchestratorState?: string | null;
@@ -35,6 +39,7 @@ export type TalentsQueryParams = {
   department?: string;
   departments?: string; // CSV para multi-select
   orchestrator?: string;
+  orchestrators?: string; // CSV para multi-select
   orchestrator_null?: boolean;
   pdi?: string;
   status?: string;
@@ -45,7 +50,9 @@ export type TalentsQueryParams = {
   verifiedPhone?: string;
   onlyVerifiedPhone?: boolean;
   leaderId?: string;
+  leaders?: string; // CSV multi
   roleId?: string;
+  roles?: string; // CSV multi
   noLeader?: boolean;
   noRole?: boolean;
   resetCountMin?: string;
@@ -54,7 +61,9 @@ export type TalentsQueryParams = {
   currentCycleMin?: string;
   currentCycleMax?: string;
   graduationCourse?: string;
+  graduationCourses?: string; // CSV multi
   graduationInstitution?: string;
+  graduationInstitutions?: string; // CSV multi
   startFrom?: string;
   startTo?: string;
   endFrom?: string;
@@ -119,6 +128,7 @@ export function useTalents(params: TalentsQueryParams) {
     setString("department", params.department);
     setString("departments", params.departments);
     setString("orchestrator", params.orchestrator);
+    setString("orchestrators", params.orchestrators);
     setBoolean("orchestrator_null", params.orchestrator_null);
     setString("pdi", params.pdi);
     setString("status", params.status);
@@ -129,7 +139,9 @@ export function useTalents(params: TalentsQueryParams) {
     setString("verifiedPhone", params.verifiedPhone);
     setBoolean("onlyVerifiedPhone", params.onlyVerifiedPhone);
     setString("leaderId", params.leaderId);
+    setString("leaders", params.leaders);
     setString("roleId", params.roleId);
+    setString("roles", params.roles);
     setBoolean("noLeader", params.noLeader);
     setBoolean("noRole", params.noRole);
     setString("resetCountMin", params.resetCountMin);
@@ -138,7 +150,9 @@ export function useTalents(params: TalentsQueryParams) {
     setString("currentCycleMin", params.currentCycleMin);
     setString("currentCycleMax", params.currentCycleMax);
     setString("graduationCourse", params.graduationCourse);
+    setString("graduationCourses", params.graduationCourses);
     setString("graduationInstitution", params.graduationInstitution);
+    setString("graduationInstitutions", params.graduationInstitutions);
     setString("startFrom", params.startFrom);
     setString("startTo", params.startTo);
     setString("endFrom", params.endFrom);
@@ -168,6 +182,7 @@ export function useTalents(params: TalentsQueryParams) {
     params.department,
     params.departments,
     params.orchestrator,
+    params.orchestrators,
     params.orchestrator_null,
     params.pdi,
     params.status,
@@ -178,7 +193,9 @@ export function useTalents(params: TalentsQueryParams) {
     params.verifiedPhone,
     params.onlyVerifiedPhone,
     params.leaderId,
+    params.leaders,
     params.roleId,
+    params.roles,
     params.noLeader,
     params.noRole,
     params.resetCountMin,
@@ -187,7 +204,9 @@ export function useTalents(params: TalentsQueryParams) {
     params.currentCycleMin,
     params.currentCycleMax,
     params.graduationCourse,
+    params.graduationCourses,
     params.graduationInstitution,
+    params.graduationInstitutions,
     params.startFrom,
     params.startTo,
     params.endFrom,

@@ -50,9 +50,18 @@ export function buildDirectusQuery(p: ListTalentsFilter): string {
   if (p.currentCycleId) addFilter(["current_cycle_id"], "_eq", p.currentCycleId);
 
   if (p.email) addFilter(["user_id", "email"], "_icontains", p.email);
-  if (p.department) addFilter(["department"], "_eq", p.department);
-  if (p.orchestratorState)
+  if (p.departments && p.departments.length) {
+    addFilter(["department"], "_in", p.departments.join(","));
+  } else if (p.department) {
+    addFilter(["department"], "_eq", p.department);
+  }
+  if (p.missingOrchestrator) {
+    addFilter(["orchestrator_state"], "_null", "true");
+  } else if (p.orchestrators && p.orchestrators.length) {
+    addFilter(["orchestrator_state"], "_in", p.orchestrators.join(","));
+  } else if (p.orchestratorState) {
     addFilter(["orchestrator_state"], "_eq", p.orchestratorState);
+  }
   if (p.pdiPlanReady !== undefined)
     addFilter(["pdi_plan_ready"], "_eq", p.pdiPlanReady ? "true" : "false");
 
@@ -78,11 +87,19 @@ export function buildDirectusQuery(p: ListTalentsFilter): string {
     );
   }
 
-  if (p.leaderId) addFilter(["leader_id"], "_eq", p.leaderId);
+  if (p.leaders && p.leaders.length) {
+    addFilter(["leader_id"], "_in", p.leaders.join(","));
+  } else if (p.leaderId) {
+    addFilter(["leader_id"], "_eq", p.leaderId);
+  }
   if (p.missingLeader !== undefined) {
     addFilter(["leader_id"], p.missingLeader ? "_null" : "_nnull", "true");
   }
-  if (p.targetRoleId) addFilter(["target_role_id"], "_eq", p.targetRoleId);
+  if (p.roles && p.roles.length) {
+    addFilter(["target_role_id"], "_in", p.roles.join(","));
+  } else if (p.targetRoleId) {
+    addFilter(["target_role_id"], "_eq", p.targetRoleId);
+  }
   if (p.missingTargetRole !== undefined) {
     addFilter(
       ["target_role_id"],
@@ -91,10 +108,14 @@ export function buildDirectusQuery(p: ListTalentsFilter): string {
     );
   }
 
-  if (p.graduationCourse) {
+  if (p.graduationCourses && p.graduationCourses.length) {
+    addFilter(["graduation_course"], "_in", p.graduationCourses.join(","));
+  } else if (p.graduationCourse) {
     addFilter(["graduation_course"], "_icontains", p.graduationCourse);
   }
-  if (p.graduationInstitution) {
+  if (p.graduationInstitutions && p.graduationInstitutions.length) {
+    addFilter(["graduation_institution"], "_in", p.graduationInstitutions.join(","));
+  } else if (p.graduationInstitution) {
     addFilter(["graduation_institution"], "_icontains", p.graduationInstitution);
   }
 

@@ -10,7 +10,11 @@ type DirectusTalentRow = {
     last_name?: string | null;
   }>;
   graduation_course?: string | null;
+  graduation_institution?: string | null;
   talent_current_skills?: string | string[] | null;
+  reset_count?: number | null;
+  current_cycle_id?: string | null;
+  current_cycle?: number | null;
   department?: string | null;
   current_status?: string | null;
   orchestrator_state?: string | null;
@@ -36,7 +40,11 @@ export function mapDirectusTalent(row: DirectusTalentRow): Talent {
     userLastName: row.user_id?.last_name ?? null,
     userEmail: row.user_id?.email ?? null,
     graduationCourse: row.graduation_course ?? null,
+    graduationInstitution: row.graduation_institution ?? null,
     currentSkills: row.talent_current_skills ?? null,
+    resetCount: row.reset_count ?? null,
+    currentCycleId: row.current_cycle_id ?? null,
+    currentCycle: row.current_cycle ?? null,
     department: row.department ?? null,
     currentStatus: row.current_status ?? null,
     orchestratorState: row.orchestrator_state ?? null,

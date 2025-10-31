@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useMemo, useRef, useState, useEffect, type Dispatch, type SetStateAction, type RefObject, type ReactNode } from "react";
+import useSWR from "swr";
 import { useTalents } from "@/hooks/useTalents";
 import { TalentsTable } from "@/modules/talent/ui/components/TalentsTable";
 
@@ -12,9 +13,12 @@ export default function HomePage() {
   const [searchEmail, setSearchEmail] = useState("");
   const [generalQ, setGeneralQ] = useState("");
   const [department, setDepartment] = useState("");
+  const [departments, setDepartments] = useState<string[]>([]);
   const [orchestrator, setOrchestrator] = useState("");
+  const [orchestrators, setOrchestrators] = useState<string[]>([]);
+  const [orchestratorNull, setOrchestratorNull] = useState(false);
   const [pdi, setPdi] = useState("");
-  const [status, setStatus] = useState("");
+  const [statuses, setStatuses] = useState<string[]>([]);
   const [id, setId] = useState("");
   const [userId, setUserId] = useState("");
   const [phone, setPhone] = useState("");
@@ -22,8 +26,12 @@ export default function HomePage() {
   const [onlyVerifiedPhone, setOnlyVerifiedPhone] = useState(false);
   const [gradCourse, setGradCourse] = useState("");
   const [gradInst, setGradInst] = useState("");
+  const [coursesSel, setCoursesSel] = useState<string[]>([]);
+  const [instSel, setInstSel] = useState<string[]>([]);
   const [leaderId, setLeaderId] = useState("");
+  const [leaders, setLeaders] = useState<string[]>([]);
   const [targetRoleId, setTargetRoleId] = useState("");
+  const [roles, setRoles] = useState<string[]>([]);
   const [noLeader, setNoLeader] = useState(false);
   const [noRole, setNoRole] = useState(false);
   const [currentCycle, setCurrentCycle] = useState("");
@@ -52,6 +60,103 @@ export default function HomePage() {
   const [lastStatusChangeTo, setLastStatusChangeTo] = useState("");
   const [lastResetFrom, setLastResetFrom] = useState("");
   const [lastResetTo, setLastResetTo] = useState("");
+
+  // helpers para chips
+  const today = useMemo(() => new Date(), []);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const addDays = (d: Date, n: number) => {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+  };
+
+  // autocomplete para escolaridade/instituição
+  const { data: coursesDistinct } = useSWR<{ data: string[] }>(
+    "/api/distinct?collection=talents&field=graduation_course",
+    (u) => fetch(u).then((r) => r.json()),
+    { revalidateOnFocus: false }
+  );
+  const { data: institutionsDistinct } = useSWR<{ data: string[] }>(
+    "/api/distinct?collection=talents&field=graduation_institution",
+    (u) => fetch(u).then((r) => r.json()),
+    { revalidateOnFocus: false }
+  );
+  const { data: leadersList } = useSWR<{ data: { id: number; position?: string; department?: string }[] }>(
+    "/api/leaders",
+    (u) => fetch(u).then((r) => r.json()),
+    { revalidateOnFocus: false }
+  );
+  const { data: rolesList } = useSWR<{ data: { id: number; name: string }[] }>(
+    "/api/roles",
+    (u) => fetch(u).then((r) => r.json()),
+    { revalidateOnFocus: false }
+  );
+
+  // util: dropdown que fecha ao clicar fora
+  function useClickAway(ref: RefObject<HTMLElement>, onAway: () => void) {
+    useEffect(() => {
+      function handler(e: MouseEvent) {
+        if (!ref.current) return;
+        if (!ref.current.contains(e.target as Node)) onAway();
+      }
+      document.addEventListener("mousedown", handler);
+      return () => document.removeEventListener("mousedown", handler);
+    }, [ref, onAway]);
+  }
+
+  function MultiCheckboxDropdown({
+    label,
+    values,
+    selected,
+    onChange,
+    className = "",
+    footer,
+  }: {
+    label: string;
+    values: { value: string; label: string }[];
+    selected: string[];
+    onChange: (next: string[]) => void;
+    className?: string;
+    footer?: ReactNode;
+  }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    useClickAway(ref, () => setOpen(false));
+    const display = selected.length ? selected.join(", ") : "(todos)";
+    return (
+      <div ref={ref} className={`relative ${className}`}>
+        <button
+          type="button"
+          className="rounded border px-2 py-1 text-sm bg-white flex items-center justify-between min-w-[220px]"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="truncate text-left">{display}</span>
+          <span className="text-gray-500 ml-2">▾</span>
+        </button>
+        {open ? (
+          <div className="absolute z-20 mt-1 bg-white border rounded shadow p-2 min-w-[220px] max-h-64 overflow-auto space-y-1">
+            {values.map((opt) => (
+              <label key={opt.value} className="flex items-center gap-2 text-sm px-1 py-0.5">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(opt.value)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? Array.from(new Set([...selected, opt.value]))
+                      : selected.filter((x) => x !== opt.value);
+                    onChange(next);
+                  }}
+                />
+                <span className="truncate">{opt.label}</span>
+              </label>
+            ))}
+            {footer ? <div className="border-t my-1" /> : null}
+            {footer ?? null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
   type DateFieldConfig = {
     key: string;
     label: string;
@@ -84,18 +189,25 @@ export default function HomePage() {
     email: searchEmail,
     q: generalQ,
     department,
+    departments: departments.join(","),
     orchestrator,
+    orchestrators: orchestrators.join(","),
+    orchestrator_null: orchestratorNull ? true : undefined,
     pdi,
-    status,
+    status: statuses.join(","),
     id,
     userId,
     phone,
     verifiedPhone,
     onlyVerifiedPhone: onlyVerifiedPhone ? true : undefined,
     graduationCourse: gradCourse,
+    graduationCourses: coursesSel.join(","),
     graduationInstitution: gradInst,
+    graduationInstitutions: instSel.join(","),
     leaderId,
+    leaders: leaders.join(","),
     roleId: targetRoleId,
+    roles: roles.join(","),
     noLeader: noLeader ? true : undefined,
     noRole: noRole ? true : undefined,
     currentCycle,
@@ -130,9 +242,12 @@ export default function HomePage() {
     setSearchEmail("");
     setGeneralQ("");
     setDepartment("");
+    setDepartments([]);
     setOrchestrator("");
+    setOrchestrators([]);
+    setOrchestratorNull(false);
     setPdi("");
-    setStatus("");
+    setStatuses([]);
     setId("");
     setUserId("");
     setPhone("");
@@ -140,8 +255,12 @@ export default function HomePage() {
     setOnlyVerifiedPhone(false);
     setGradCourse("");
     setGradInst("");
+    setCoursesSel([]);
+    setInstSel([]);
     setLeaderId("");
+    setLeaders([]);
     setTargetRoleId("");
+    setRoles([]);
     setNoLeader(false);
     setNoRole(false);
     setCurrentCycle("");
@@ -179,6 +298,127 @@ export default function HomePage() {
       </header>
 
       <section className="flex flex-wrap gap-4 items-end border rounded-lg p-4 bg-gray-50">
+        <div className="w-full flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Busca geral</label>
+          <input
+            className="rounded border px-3 py-2 text-sm w-full"
+            placeholder="Busque por departamento, curso, instituição, líder, cargo ..."
+            value={generalQ}
+            onChange={(e) => {
+              setPage(1);
+              setGeneralQ(e.target.value);
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Curso(s)</label>
+          <MultiCheckboxDropdown
+            label="Cursos"
+            values={(coursesDistinct?.data ?? []).map((c) => ({ value: c, label: c }))}
+            selected={coursesSel}
+            onChange={(next) => {
+              setPage(1);
+              setCoursesSel(next);
+              setGradCourse("");
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Instituição(ões)</label>
+          <MultiCheckboxDropdown
+            label="Instituições"
+            values={(institutionsDistinct?.data ?? []).map((i) => ({ value: i, label: i }))}
+            selected={instSel}
+            onChange={(next) => {
+              setPage(1);
+              setInstSel(next);
+              setGradInst("");
+            }}
+          />
+        </div>
+
+        {/* Current Cycle range */}
+        <div className="flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Ciclo atual (faixa)</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              className="rounded border px-2 py-1 w-24"
+              placeholder="mín"
+              value={cycleMin}
+              onChange={(e) => {
+                setPage(1);
+                setCycleMin(e.target.value);
+              }}
+            />
+            <span className="text-gray-500">–</span>
+            <input
+              type="number"
+              min={1}
+              className="rounded border px-2 py-1 w-24"
+              placeholder="máx"
+              value={cycleMax}
+              onChange={(e) => {
+                setPage(1);
+                setCycleMax(e.target.value);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Chips: Vigência rápida */}
+        <div className="flex flex-col text-sm">
+          <label className="font-medium">Vigência rápida</label>
+          <div className="flex gap-2 mt-1 flex-wrap">
+            <button
+              className="rounded border px-2 py-1 text-xs bg-white hover:bg-gray-100"
+              onClick={() => {
+                setPage(1);
+                setActiveFrom(fmt(today));
+                setActiveTo(fmt(today));
+                setStartDateFrom("");
+                setStartDateTo("");
+                setEndDateFrom("");
+                setEndDateTo("");
+              }}
+            >
+              Ativos hoje
+            </button>
+            <button
+              className="rounded border px-2 py-1 text-xs bg-white hover:bg-gray-100"
+              onClick={() => {
+                setPage(1);
+                setActiveFrom("");
+                setActiveTo("");
+                setStartDateFrom(fmt(today));
+                setStartDateTo(fmt(addDays(today, 30)));
+                setEndDateFrom("");
+                setEndDateTo("");
+              }}
+            >
+              Entra nos próximos 30 dias
+            </button>
+            <button
+              className="rounded border px-2 py-1 text-xs bg-white hover:bg-gray-100"
+              onClick={() => {
+                setPage(1);
+                setActiveFrom("");
+                setActiveTo("");
+                setStartDateFrom("");
+                setStartDateTo("");
+                setEndDateFrom(fmt(today));
+                setEndDateTo(fmt(addDays(today, 30)));
+              }}
+            >
+              Termina nos próximos 30 dias
+            </button>
+          </div>
+        </div>
+
+        
         <div className="flex flex-col text-sm">
           <label className="text-gray-700 font-medium">Buscar por e-mail</label>
           <input
@@ -193,87 +433,130 @@ export default function HomePage() {
         </div>
 
         <div className="flex flex-col text-sm">
-          <label className="text-gray-700 font-medium">Busca geral</label>
-          <input
-            className="rounded border px-2 py-1 text-sm"
-            placeholder="ex: Engineering, Marketing, ACTIVE..."
-            value={generalQ}
-            onChange={(e) => {
+          <label className="text-gray-700 font-medium">Departamentos</label>
+          <MultiCheckboxDropdown
+            label="Departamentos"
+            values={["Engineering","Design","Product","Marketing","Operations"].map((d) => ({ value: d, label: d }))}
+            selected={departments}
+            onChange={(next) => {
               setPage(1);
-              setGeneralQ(e.target.value);
+              setDepartments(next);
             }}
           />
         </div>
 
         <div className="flex flex-col text-sm">
-          <label className="text-gray-700 font-medium">Departamento</label>
-          <select
-            className="rounded border px-2 py-1 text-sm"
-            value={department}
-            onChange={(e) => {
-              setPage(1);
-              setDepartment(e.target.value);
-            }}
-          >
-            <option value="">(todos)</option>
-            <option value="Engineering">Engineering</option>
-            <option value="Design">Design</option>
-            <option value="Product">Product</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Operations">Operations</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col text-sm">
           <label className="text-gray-700 font-medium">Orchestrator</label>
-          <select
-            className="rounded border px-2 py-1 text-sm"
-            value={orchestrator}
-            onChange={(e) => {
+          <MultiCheckboxDropdown
+            label="Orchestrator"
+            values={["ACTIVE","ONBOARDING","PENDING"].map((o) => ({ value: o, label: o }))}
+            selected={orchestrators}
+            onChange={(next) => {
               setPage(1);
-              setOrchestrator(e.target.value);
+              setOrchestrator("");
+              setOrchestratorNull(false);
+              setOrchestrators(next);
             }}
-          >
-            <option value="">(todos)</option>
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="ONBOARDING">ONBOARDING</option>
-            <option value="PENDING">PENDING</option>
-            <option value="INACTIVE">INACTIVE</option>
-          </select>
+            footer={
+              <label className="flex items-center gap-2 text-sm px-1 py-0.5">
+                <input
+                  type="checkbox"
+                  checked={orchestratorNull}
+                  onChange={(e) => {
+                    setPage(1);
+                    setOrchestratorNull(e.target.checked);
+                    if (e.target.checked) {
+                      setOrchestrator("");
+                      setOrchestrators([]);
+                    }
+                  }}
+                />
+                Sem estado
+              </label>
+            }
+          />
         </div>
 
         <div className="flex flex-col text-sm">
           <label className="text-gray-700 font-medium">PDI pronto?</label>
-          <select
-            className="rounded border px-2 py-1 text-sm"
-            value={pdi}
-            onChange={(e) => {
+          <MultiCheckboxDropdown
+            label="PDI"
+            values={[{ value: "true", label: "Sim" }, { value: "false", label: "Não" }]}
+            selected={pdi ? [pdi] : []}
+            onChange={(next) => {
               setPage(1);
-              setPdi(e.target.value);
+              if (next.length === 1) setPdi(next[0]);
+              else setPdi("");
             }}
-          >
-            <option value="">(todos)</option>
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
-          </select>
+          />
         </div>
 
         <div className="flex flex-col text-sm">
           <label className="text-gray-700 font-medium">Status</label>
-          <select
-            className="rounded border px-2 py-1 text-sm"
-            value={status}
-            onChange={(e) => {
+          <MultiCheckboxDropdown
+            label="Status"
+            values={["ACTIVE","PENDING_FIRST_ACCESS","INACTIVE","ONBOARDING"].map((s) => ({ value: s, label: s }))}
+            selected={statuses}
+            onChange={(next) => {
               setPage(1);
-              setStatus(e.target.value);
+              setStatuses(next);
             }}
-          >
-            <option value="">(todos)</option>
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="PENDING_FIRST_ACCESS">PENDING_FIRST_ACCESS</option>
-            <option value="INACTIVE">INACTIVE</option>
-            <option value="ONBOARDING">ONBOARDING</option>
-          </select>
+          />
+        </div>
+
+        <div className="flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Líder</label>
+          <MultiCheckboxDropdown
+            label="Líder"
+            values={(leadersList?.data ?? []).map((l) => ({
+              value: String(l.id),
+              label: String(l.id) + " - " + (l.position ?? "?") + (l.department ? " / " + l.department : ""),
+            }))}
+            selected={leaders}
+            onChange={(next) => {
+              setPage(1);
+              setLeaders(next);
+            }}
+            footer={
+              <label className="flex items-center gap-2 text-sm px-1 py-0.5">
+                <input
+                  type="checkbox"
+                  checked={noLeader}
+                  onChange={(e) => {
+                    setPage(1);
+                    setNoLeader(e.target.checked);
+                  }}
+                />
+                Sem líder
+              </label>
+            }
+          />
+        </div>
+
+        <div className="flex flex-col text-sm">
+          <label className="text-gray-700 font-medium">Cargo alvo</label>
+          <MultiCheckboxDropdown
+            label="Cargo alvo"
+            values={(rolesList?.data ?? []).map((r) => ({ value: String(r.id), label: r.name }))}
+            selected={roles}
+            onChange={(next) => {
+              setPage(1);
+              setRoles(next);
+            }}
+            footer={
+              <label className="flex items-center gap-2 text-sm px-1 py-0.5">
+                <input
+                  type="checkbox"
+                  checked={noRole}
+                  onChange={(e) => {
+                    setPage(1);
+                    setNoRole(e.target.checked);
+                  }}
+                />
+                Sem cargo alvo
+              </label>
+            }
+          />
         </div>
 
         <details className="w-full">
@@ -337,28 +620,7 @@ export default function HomePage() {
                 }}
               />
             </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Curso</label>
-              <input
-                className="rounded border px-2 py-1"
-                value={gradCourse}
-                onChange={(e) => {
-                  setPage(1);
-                  setGradCourse(e.target.value);
-                }}
-              />
-            </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Instituição</label>
-              <input
-                className="rounded border px-2 py-1"
-                value={gradInst}
-                onChange={(e) => {
-                  setPage(1);
-                  setGradInst(e.target.value);
-                }}
-              />
-            </div>
+            
 
             <div className="flex flex-col text-sm">
               <label className="font-medium">Somente telefones verificados</label>
@@ -377,62 +639,7 @@ export default function HomePage() {
                 </span>
               </div>
             </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Leader ID</label>
-              <input
-                className="rounded border px-2 py-1"
-                value={leaderId}
-                onChange={(e) => {
-                  setPage(1);
-                  setLeaderId(e.target.value);
-                }}
-              />
-            </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Sem líder</label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={noLeader}
-                  onChange={(e) => {
-                    setPage(1);
-                    setNoLeader(e.target.checked);
-                  }}
-                />
-                <span className="text-xs text-gray-600">
-                  Filtra talentos sem líder associado
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Target Role ID</label>
-              <input
-                className="rounded border px-2 py-1"
-                value={targetRoleId}
-                onChange={(e) => {
-                  setPage(1);
-                  setTargetRoleId(e.target.value);
-                }}
-              />
-            </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Sem cargo alvo</label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={noRole}
-                  onChange={(e) => {
-                    setPage(1);
-                    setNoRole(e.target.checked);
-                  }}
-                />
-                <span className="text-xs text-gray-600">
-                  Exibe talentos sem cargo alvo vinculado
-                </span>
-              </div>
-            </div>
+            
 
             <div className="flex flex-col text-sm">
               <label className="font-medium">Reset count (min)</label>
@@ -458,42 +665,7 @@ export default function HomePage() {
                 }}
               />
             </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Current cycle (exato)</label>
-              <input
-                type="number"
-                className="rounded border px-2 py-1"
-                value={currentCycle}
-                onChange={(e) => {
-                  setPage(1);
-                  setCurrentCycle(e.target.value);
-                }}
-              />
-            </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Current cycle (mín)</label>
-              <input
-                type="number"
-                className="rounded border px-2 py-1"
-                value={cycleMin}
-                onChange={(e) => {
-                  setPage(1);
-                  setCycleMin(e.target.value);
-                }}
-              />
-            </div>
-            <div className="flex flex-col text-sm">
-              <label className="font-medium">Current cycle (máx)</label>
-              <input
-                type="number"
-                className="rounded border px-2 py-1"
-                value={cycleMax}
-                onChange={(e) => {
-                  setPage(1);
-                  setCycleMax(e.target.value);
-                }}
-              />
-            </div>
+            
 
             {dateFieldConfigs.map(({ key, label, value, setter }) => (
               <div key={key} className="flex flex-col text-sm">
@@ -509,6 +681,8 @@ export default function HomePage() {
                 />
               </div>
             ))}
+
+            
             <div className="flex flex-col text-sm">
               <label className="font-medium">Registros excluídos</label>
               <select
@@ -530,21 +704,23 @@ export default function HomePage() {
           </div>
         </details>
 
-        <div className="flex flex-col text-sm">
-          <label className="text-sm text-gray-700">Ordenar por</label>
-          <select
-            className="rounded border px-2 py-1 text-sm"
-            value={sort}
-            onChange={(e) => {
-              setPage(1);
-              setSort(e.target.value);
-            }}
-          >
-            <option value="-date_updated">Mais recentes (atualização)</option>
-            <option value="-last_status_change_at">Mudanças de status recentes</option>
-            <option value="start_date">Início (mais antigo primeiro)</option>
-            <option value="end_date">Fim (mais antigo primeiro)</option>
-          </select>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col text-sm">
+            <label className="text-sm text-gray-700">Ordenar: Atualizado</label>
+            <select
+              className="rounded border px-2 py-1 text-sm"
+              value={sort === "date_updated" ? "asc" : sort === "-date_updated" ? "desc" : ""}
+              onChange={(e) => {
+                setPage(1);
+                const v = e.target.value;
+                setSort(v === "asc" ? "date_updated" : v === "desc" ? "-date_updated" : "-date_updated");
+              }}
+            >
+              <option value="">(—)</option>
+              <option value="asc">Mais antigo</option>
+              <option value="desc">Mais recente</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -582,6 +758,11 @@ export default function HomePage() {
         page={page}
         limit={limit}
         onPageChange={setPage}
+        sort={sort}
+        onSortChange={(s) => {
+          setPage(1);
+          setSort(s);
+        }}
       />
     </main>
   );
