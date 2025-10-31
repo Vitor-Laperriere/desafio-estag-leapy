@@ -1,6 +1,8 @@
+// @improved Global layout with sticky header and themed background
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Header } from "./_components/Header";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +18,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} min-h-screen`}>{children}</body>
+      <body
+        className={`${inter.className} min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]`}
+      >
+        <Header title="Talentos" />
+        <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 pb-16 pt-28">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }

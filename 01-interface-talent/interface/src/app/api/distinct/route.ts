@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { env } from "@/core/env";
 import { httpGet } from "@/core/http/fetch";
 
+type DirectusDistinctResponse = {
+  data?: Array<Record<string, unknown>>;
+};
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -25,14 +29,14 @@ export async function GET(req: Request) {
       headers: { Authorization: `Bearer ${env.DIRECTUS_TOKEN}` },
       next: { revalidate: 30 },
     });
-    const json = await res.json();
-    const values = Array.from(
-      new Set(
-        ((json?.data as any[]) ?? [])
-          .map((r) => r?.[field])
-          .filter((v) => v !== null && v !== undefined && String(v).trim() !== "")
-      )
-    );
+    const json = (await res.json()) as DirectusDistinctResponse;
+    const data = Array.isArray(json.data) ? json.data : [];
+    const sanitized = data
+      .map((record) => record?.[field])
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    const values = Array.from(new Set(sanitized));
     return NextResponse.json({ data: values });
   } catch (err: unknown) {
     const message =
@@ -45,4 +49,3 @@ export async function GET(req: Request) {
     );
   }
 }
-

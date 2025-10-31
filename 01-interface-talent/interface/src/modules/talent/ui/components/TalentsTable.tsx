@@ -1,35 +1,381 @@
 "use client";
 
-import React from "react";
+// @improved Modern, accessible table with expandable rows for talent details
+import React, { Fragment, useState } from "react";
 import { Talent } from "@/hooks/useTalents";
 
-function Badge({
-  children,
-  color = "gray",
-}: {
-  children: React.ReactNode;
-  color?: "green" | "yellow" | "red" | "blue" | "gray";
-}) {
-  const map: Record<string, string> = {
-    green: "bg-green-100 text-green-800",
-    yellow: "bg-yellow-100 text-yellow-800",
-    red: "bg-red-100 text-red-800",
-    blue: "bg-blue-100 text-blue-800",
-    gray: "bg-gray-100 text-gray-800",
-  };
+type TalentsTableProps = {
+  talents: Talent[];
+  isLoading: boolean;
+  isError: boolean;
+  errorDetail?: string;
+  total: number;
+  page: number;
+  limit: number;
+  onPageChange: (n: number) => void;
+  sort: string;
+  onSortChange: (s: string) => void;
+};
+
+export function TalentsTable({
+  talents,
+  isLoading,
+  isError,
+  errorDetail,
+  total,
+  page,
+  limit,
+  onPageChange,
+  sort,
+  onSortChange,
+}: TalentsTableProps) {
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggleRow = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-4 w-48 rounded-full bg-[var(--color-soft)] animate-pulse" />
+        <div className="space-y-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-10 w-full animate-pulse rounded-xl bg-gradient-to-r from-[var(--color-soft)] via-[var(--color-card)] to-[var(--color-soft)]"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        role="alert"
+        className="card border border-[var(--color-secondary)] bg-[var(--color-card)] px-6 py-5 text-[var(--color-text)]"
+      >
+        <p className="text-base font-semibold text-[var(--color-secondary)]">
+          Erro ao carregar talentos
+        </p>
+        <p className="text-sm text-[var(--color-subtle)]">{errorDetail ?? "Tente novamente mais tarde."}</p>
+        <button
+          type="button"
+          className="btn-ghost mt-4"
+          onClick={() => onPageChange(page)}
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
+  if (!talents.length) {
+    return (
+      <div className="card flex flex-col items-center gap-3 px-6 py-10 text-center text-sm text-[var(--color-subtle)]">
+        <span aria-hidden className="text-4xl">🗂️</span>
+        <p className="text-base font-medium text-[var(--color-text)]">Nenhum talento encontrado</p>
+        <p>Revise os filtros ou limpe a busca para visualizar novos resultados.</p>
+      </div>
+    );
+  }
+
+  const currentSort = sort ?? "";
+
   return (
-    <span
-      className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[color]}`}
-    >
-      {children}
-    </span>
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--color-subtle)]" aria-live="polite">
+        Mostrando página {page} de {totalPages} • {total} resultado(s)
+      </p>
+
+      <div className="overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)]">
+        <table className="min-w-[1600px] w-full text-sm text-[var(--color-text)]" role="table">
+          <thead className="sticky top-0 z-10 bg-[var(--color-soft)]/80 backdrop-blur">
+            <tr role="row" className="text-left text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Nome"
+                  field="user_id.last_name"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Escolaridade"
+                  field="graduation_course"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Instituição"
+                  field="graduation_institution"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">Skills</th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Email"
+                  field="user_id.email"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Departamento"
+                  field="department"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Status"
+                  field="current_status"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Orquestrador"
+                  field="orchestrator_state"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="PDI"
+                  field="pdi_plan_ready"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">Líder</th>
+              <th scope="col" className="px-4 py-3">Cargo alvo</th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Início"
+                  field="start_date"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Fim"
+                  field="end_date"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-4 py-3">
+                <SortHeaderButton
+                  label="Ciclo atual"
+                  field="current_cycle"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border)]/60" role="rowgroup">
+            {talents.map((talent) => {
+              const isOpen = !!expanded[talent.id];
+              const fullName = buildName(talent);
+              return (
+                <Fragment key={talent.id}>
+                  <tr
+                    role="row"
+                    className={`cursor-pointer transition-colors hover:bg-[var(--color-soft)]/40 ${
+                      isOpen ? "bg-[var(--color-soft)]/30" : ""
+                    }`}
+                    onClick={() => toggleRow(talent.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleRow(talent.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    aria-expanded={isOpen}
+                    aria-controls={`talent-details-${talent.id}`}
+                  >
+                    <Cell as="th" scope="row">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-xs text-[var(--color-subtle)]" aria-hidden>
+                          {isOpen ? "▾" : "▸"}
+                        </span>
+                        <span className="truncate" title={fullName}>
+                          {fullName}
+                        </span>
+                      </span>
+                    </Cell>
+                    <Cell value={talent.graduationCourse} />
+                    <Cell value={talent.graduationInstitution} />
+                    <Cell value={Array.isArray(talent.currentSkills) ? talent.currentSkills.join(", ") : talent.currentSkills} />
+                    <Cell>
+                      {talent.userEmail ? (
+                        <a
+                          href={`mailto:${talent.userEmail}`}
+                          className="truncate text-[var(--color-primary)] hover:underline"
+                          title={talent.userEmail}
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => event.stopPropagation()}
+                        >
+                          {talent.userEmail}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </Cell>
+                    <Cell value={talent.department} />
+                    <Cell>
+                      <Badge color={statusColor(talent.currentStatus)}>
+                        {talent.currentStatus ?? "—"}
+                      </Badge>
+                    </Cell>
+                    <Cell>
+                      <Badge color={statusColor(talent.orchestratorState)}>
+                        {talent.orchestratorState ?? "—"}
+                      </Badge>
+                    </Cell>
+                    <Cell>
+                      <Badge color={talent.pdiPlanReady ? "green" : "gray"}>
+                        {talent.pdiPlanReady ? "Sim" : "Não"}
+                      </Badge>
+                    </Cell>
+                    <Cell value={[talent.leader?.position, talent.leader?.department].filter(Boolean).join(" / ")} />
+                    <Cell value={talent.targetRole?.name} />
+                    <Cell value={formatForTable(talent.startDate)} />
+                    <Cell value={formatForTable(talent.endDate)} />
+                    <Cell value={talent.currentCycle != null ? String(talent.currentCycle) : undefined} />
+                  </tr>
+                  {isOpen ? (
+                    <tr role="row" className="bg-[var(--color-card)]/80" id={`talent-details-${talent.id}`}>
+                      <td colSpan={14} className="p-0">
+                        <div className="mx-4 mb-4 -mt-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/60 shadow-lg shadow-black/20">
+                          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
+                            <div>
+                              <p className="text-sm font-semibold text-[var(--color-text)]">Detalhes do talento</p>
+                              <p className="text-xs text-[var(--color-subtle)]">{fullName}</p>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-ghost text-xs"
+                              onClick={() => toggleRow(talent.id)}
+                            >
+                              Fechar
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 gap-4 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <Info label="Email" value={talent.userEmail} />
+                            <Info label="Departamento" value={talent.department} />
+                            <Info label="Status" value={talent.currentStatus} />
+                            <Info label="Orquestrador" value={talent.orchestratorState} />
+                            <Info label="PDI pronto" value={talent.pdiPlanReady ? "Sim" : "Não"} />
+                            <Info label="Curso" value={talent.graduationCourse} />
+                            <Info label="Instituição" value={talent.graduationInstitution} />
+                            <Info label="Skills" value={Array.isArray(talent.currentSkills) ? talent.currentSkills.join(", ") : talent.currentSkills} />
+                            <Info label="Ciclo atual" value={talent.currentCycle != null ? String(talent.currentCycle) : undefined} />
+                            <Info label="Ciclo ID" value={talent.currentCycleId} />
+                            <Info label="Líder" value={[talent.leader?.position, talent.leader?.department].filter(Boolean).join(" / ") || undefined} />
+                            <Info label="Cargo alvo" value={talent.targetRole?.name} />
+                            <Info label="Início" value={formatForTable(talent.startDate)} />
+                            <Info label="Fim" value={formatForTable(talent.endDate)} />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <nav className="flex items-center gap-3 text-sm text-[var(--color-subtle)]" aria-label="Paginação" aria-live="polite">
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          aria-label="Página anterior"
+          aria-disabled={page <= 1}
+          rel="prev"
+        >
+          ← Anterior
+        </button>
+        <span>
+          Página {page} / {totalPages}
+        </span>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          aria-label="Próxima página"
+          aria-disabled={page >= totalPages}
+          rel="next"
+        >
+          Próxima →
+        </button>
+      </nav>
+    </div>
   );
 }
 
-function statusColor(
-  s?: string | null
-): "green" | "yellow" | "red" | "blue" | "gray" {
-  switch (s) {
+type SortHeaderButtonProps = {
+  label: string;
+  field: string;
+  currentSort: string;
+  onSortChange: (sort: string) => void;
+};
+
+function SortHeaderButton({ label, field, currentSort, onSortChange }: SortHeaderButtonProps) {
+  const isAsc = currentSort === field;
+  const isDesc = currentSort === `-${field}`;
+  const icon = isAsc ? "▲" : isDesc ? "▼" : "↕";
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-text)] hover:text-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+      onClick={() => {
+        const next = isDesc ? field : isAsc ? "" : `-${field}`;
+        onSortChange(next || "-date_updated");
+      }}
+      title={`Ordenar por ${label}`}
+    >
+      <span>{label}</span>
+      <span className="text-[10px] text-[var(--color-subtle)]">{icon}</span>
+    </button>
+  );
+}
+
+type BadgeColor = "green" | "yellow" | "red" | "blue" | "gray";
+
+function Badge({ children, color = "gray" }: { children: React.ReactNode; color?: BadgeColor }) {
+  const map: Record<BadgeColor, string> = {
+    green: "bg-emerald-500/20 text-emerald-200",
+    yellow: "bg-amber-500/20 text-amber-200",
+    red: "bg-red-500/20 text-red-200",
+    blue: "bg-sky-500/20 text-sky-200",
+    gray: "bg-[var(--color-soft)] text-[var(--color-subtle)]",
+  };
+  return (
+    <span className={`chip border-0 bg-transparent px-3 py-1 font-medium ${map[color]}`}>{children}</span>
+  );
+}
+
+function statusColor(status?: string | null): BadgeColor {
+  switch (status) {
     case "ACTIVE":
       return "green";
     case "ONBOARDING":
@@ -44,281 +390,36 @@ function statusColor(
   }
 }
 
-export function TalentsTable({
-  talents,
-  isLoading,
-  isError,
-  errorDetail,
-  total,
-  page,
-  limit,
-  onPageChange,
-  sort,
-  onSortChange,
-}: {
-  talents: Talent[];
-  isLoading: boolean;
-  isError: boolean;
-  errorDetail?: string;
-  total: number;
-  page: number;
-  limit: number;
-  onPageChange: (n: number) => void;
-  sort: string;
-  onSortChange: (s: string) => void;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
-  const toggle = (id: string) =>
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+function buildName(talent: Talent) {
+  const parts = [talent.userFirstName, talent.userLastName].filter(
+    (part): part is string => Boolean(part && part.trim())
+  );
+  if (parts.length) return parts.join(" ");
+  return talent.userEmail ?? "—";
+}
 
-  const currentSort = sort ?? "";
-  const SortHeader = ({ label, field }: { label: string; field: string }) => {
-    const isAsc = currentSort === field;
-    const isDesc = currentSort === `-${field}`;
-    const icon = isAsc ? "▲" : isDesc ? "▼" : "↕";
-    return (
-      <button
-        type="button"
-        className="inline-flex items-center gap-1 hover:underline"
-        onClick={() => {
-          const next = isDesc ? field : isAsc ? "" : `-${field}`;
-          onSortChange(next || "-date_updated");
-        }}
-        title={`Ordenar por ${label}`}
-      >
-        <span>{label}</span>
-        <span className="text-gray-500 text-[10px]">{icon}</span>
-      </button>
-    );
-  };
+function formatForTable(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <div className="h-4 w-56 bg-gray-200 animate-pulse rounded" />
-        <div className="overflow-hidden rounded-lg border">
-          <div className="h-10 bg-gray-50" />
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-12 border-t bg-white animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div
-        role="alert"
-        className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800"
-      >
-        <p className="font-semibold">Erro ao carregar talentos</p>
-        {errorDetail ? <p className="text-sm mt-1">{errorDetail}</p> : null}
-      </div>
-    );
-  }
-
-  if (!talents.length) {
-    return (
-      <div className="rounded-lg border border-gray-200 p-6 bg-white">
-        <p className="font-medium">Nenhum talento encontrado.</p>
-        <p className="text-sm text-gray-600">
-          Ajuste os filtros ou limpe a busca.
-        </p>
-      </div>
-    );
-  }
-
+function Cell({ children, value, as: Element = "td", scope }: { children?: React.ReactNode; value?: string | null; as?: "td" | "th"; scope?: "row" | "col" }) {
+  const content = children ?? (value ? <span className="truncate" title={value}>{value}</span> : "—");
   return (
-    <div className="space-y-4">
-      <div className="text-sm text-gray-600">
-        Mostrando página {page} de {totalPages} • {total} resultado(s)
-      </div>
-
-      <div className="overflow-auto rounded-lg border border-gray-200">
-        <table className="min-w-[1600px] w-full text-sm">
-          <thead className="bg-gray-50 sticky top-0 z-10">
-            <tr className="text-left text-xs uppercase text-gray-600">
-              <th className="px-3 py-2">
-                <SortHeader label="Nome" field="user_id.last_name" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Escolaridade" field="graduation_course" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Instituição" field="graduation_institution" />
-              </th>
-              <th className="px-3 py-2">Skills</th>
-              <th className="px-3 py-2">
-                <SortHeader label="Email" field="user_id.email" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Departamento" field="department" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Status" field="current_status" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Orquestrador" field="orchestrator_state" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="PDI" field="pdi_plan_ready" />
-              </th>
-              <th className="px-3 py-2">Líder</th>
-              <th className="px-3 py-2">Cargo alvo</th>
-              <th className="px-3 py-2">
-                <SortHeader label="Início" field="start_date" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Fim" field="end_date" />
-              </th>
-              <th className="px-3 py-2">
-                <SortHeader label="Ciclo atual" field="current_cycle" />
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {talents.map((t) => {
-              const isOpen = !!expanded[t.id];
-              const fullName = (() => {
-                const parts = [t.userFirstName, t.userLastName].filter(
-                  (part): part is string => Boolean(part && part.trim())
-                );
-                if (parts.length) return parts.join(" ");
-                return t.userEmail ?? "—";
-              })();
-              return (
-                <>
-                  <tr
-                    key={t.id}
-                    className={`odd:bg-white even:bg-gray-50 hover:bg-gray-50 cursor-pointer ${
-                      isOpen ? "bg-gray-50" : ""
-                    }`}
-                    onClick={() => toggle(t.id)}
-                    aria-expanded={isOpen}
-                  >
-                    <td className="px-3 py-2 font-medium">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="text-gray-500 text-xs">
-                          {isOpen ? "▾" : "▸"}
-                        </span>
-                        {fullName}
-                      </span>
-                    </td>
-                <td className="px-3 py-2">{t.graduationCourse ?? "—"}</td>
-                <td className="px-3 py-2">{t.graduationInstitution ?? "—"}</td>
-                <td className="px-3 py-2">
-                  {Array.isArray(t.currentSkills)
-                    ? t.currentSkills.join(", ")
-                    : t.currentSkills ?? "—"}
-                </td>
-                <td className="px-3 py-2">{t.userEmail ?? "—"}</td>
-                <td className="px-3 py-2">{t.department ?? "—"}</td>
-                <td className="px-3 py-2">
-                  <Badge color={statusColor(t.currentStatus)}>
-                    {t.currentStatus ?? "—"}
-                  </Badge>
-                </td>
-                <td className="px-3 py-2">
-                  <Badge color={statusColor(t.orchestratorState)}>
-                    {t.orchestratorState ?? "—"}
-                  </Badge>
-                </td>
-                <td className="px-3 py-2">
-                  <Badge color={t.pdiPlanReady ? "green" : "gray"}>
-                    {t.pdiPlanReady ? "Sim" : "Não"}
-                  </Badge>
-                </td>
-                <td className="px-3 py-2">
-                  {t.leader?.position ?? "—"}
-                  {t.leader?.department ? ` / ${t.leader.department}` : ""}
-                </td>
-                <td className="px-3 py-2">{t.targetRole?.name ?? "—"}</td>
-                <td className="px-3 py-2 text-xs text-gray-600">
-                  {t.startDate
-                    ? new Date(t.startDate).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="px-3 py-2 text-xs text-gray-600">
-                  {t.endDate ? new Date(t.endDate).toLocaleDateString() : "—"}
-                </td>
-                <td className="px-3 py-2">{t.currentCycle ?? "—"}</td>
-                  </tr>
-                  {isOpen ? (
-                    <tr className="bg-white">
-                      <td colSpan={14} className="p-0">
-                        <div className="mx-3 mb-3 -mt-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                          <div className="px-4 py-3 border-b bg-gray-50 rounded-t-lg flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold">Detalhes do talento</p>
-                              <p className="text-xs text-gray-600">{fullName}</p>
-                            </div>
-                            <button
-                              type="button"
-                              className="text-xs text-gray-600 hover:underline"
-                              onClick={() => toggle(t.id)}
-                            >
-                              Fechar
-                            </button>
-                          </div>
-                          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <Info label="Email" value={t.userEmail} />
-                            <Info label="Departamento" value={t.department} />
-                            <Info label="Status" value={t.currentStatus} />
-                            <Info label="Orquestrador" value={t.orchestratorState} />
-                            <Info label="PDI pronto" value={t.pdiPlanReady ? "Sim" : "Não"} />
-                            <Info label="Curso" value={t.graduationCourse} />
-                            <Info label="Instituição" value={t.graduationInstitution} />
-                            <Info label="Skills" value={Array.isArray(t.currentSkills) ? t.currentSkills.join(", ") : t.currentSkills} />
-                            <Info label="Ciclo atual" value={t.currentCycle != null ? String(t.currentCycle) : null} />
-                            <Info label="Ciclo ID" value={t.currentCycleId} />
-                            <Info label="Líder" value={[t.leader?.position, t.leader?.department].filter(Boolean).join(" / ") || null} />
-                            <Info label="Cargo alvo" value={t.targetRole?.name ?? null} />
-                            <Info label="Início" value={t.startDate ? new Date(t.startDate).toLocaleDateString() : null} />
-                            <Info label="Fim" value={t.endDate ? new Date(t.endDate).toLocaleDateString() : null} />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : null}
-                </>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <nav className="flex items-center gap-3 text-sm" aria-label="Paginação">
-        <button
-          className="rounded border px-2 py-1 disabled:opacity-40"
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page <= 1}
-          aria-label="Página anterior"
-        >
-          ← Anterior
-        </button>
-        <span>
-          Página {page} / {totalPages}
-        </span>
-        <button
-          className="rounded border px-2 py-1 disabled:opacity-40"
-          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-          disabled={page >= totalPages}
-          aria-label="Próxima página"
-        >
-          Próxima →
-        </button>
-      </nav>
-    </div>
+    <Element scope={scope} className="px-4 py-3 text-sm text-[var(--color-text)]" title={typeof value === "string" ? value : undefined}>
+      {content}
+    </Element>
   );
 }
 
-function Info({ label, value }: { label: string; value: string | null | undefined }) {
+function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="text-sm font-medium text-gray-900 truncate">{value ?? "—"}</p>
+      <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</p>
+      <p className="truncate text-sm font-medium text-[var(--color-text)]" title={value ?? undefined}>
+        {value ?? "—"}
+      </p>
     </div>
   );
 }

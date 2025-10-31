@@ -1,5 +1,57 @@
+/* @improved Global design tokens and base styles for the refreshed UI theme */
 @import "tailwindcss";
 
-:root { color-scheme: light; }
-html, body { min-height: 100%; }
+:root {
+  color-scheme: dark;
+  --color-primary:#33DDB1;
+  --color-secondary:#FD5A5A;
+  --color-accent:#373AFC;
+  --color-bg:#0B0C10;
+  --color-card:#12131A;
+  --color-soft:#1A1B22;
+  --color-border:#23242D;
+  --color-text:#E6E7EC;
+  --color-subtle:#A7AAB8;
+}
 
+html, body {
+  min-height: 100%;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+body {
+  @apply antialiased bg-[var(--color-bg)] text-[var(--color-text)];
+}
+
+a {
+  @apply text-[var(--color-primary)] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)];
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-lg px-3 py-2 font-medium text-sm bg-[var(--color-primary)] text-black hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)];
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-soft)] border border-[var(--color-border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)];
+}
+
+.input {
+  @apply w-full rounded-lg bg-[var(--color-soft)] text-[var(--color-text)] placeholder-[var(--color-subtle)] border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)];
+}
+
+.select {
+  @apply w-full rounded-lg bg-[var(--color-soft)] text-[var(--color-text)] placeholder-[var(--color-subtle)] border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] appearance-none pr-10;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-text)];
+}
+
+.card {
+  @apply rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg shadow-black/20;
+}
+
+.sr-only {
+  @apply sr-only;
+}
