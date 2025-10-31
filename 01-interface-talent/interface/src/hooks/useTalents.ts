@@ -33,7 +33,9 @@ export type TalentsQueryParams = {
   email?: string;
   q?: string;
   department?: string;
+  departments?: string; // CSV para multi-select
   orchestrator?: string;
+  orchestrator_null?: boolean;
   pdi?: string;
   status?: string;
   id?: string;
@@ -115,7 +117,9 @@ export function useTalents(params: TalentsQueryParams) {
     if (debouncedQ) setString("q", debouncedQ);
 
     setString("department", params.department);
+    setString("departments", params.departments);
     setString("orchestrator", params.orchestrator);
+    setBoolean("orchestrator_null", params.orchestrator_null);
     setString("pdi", params.pdi);
     setString("status", params.status);
     setString("id", params.id);
@@ -162,7 +166,9 @@ export function useTalents(params: TalentsQueryParams) {
     debouncedEmail,
     debouncedQ,
     params.department,
+    params.departments,
     params.orchestrator,
+    params.orchestrator_null,
     params.pdi,
     params.status,
     params.id,
