@@ -1,110 +1,288 @@
--- MÍNIMAS MUDANÇAS para o seed funcionar com as FKs
+BEGIN;
 
--- 0) garante gen_random_uuid()
+-- 0) Extensão p/ gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- A) cria 20 usuários de LÍDERES em directus_users (idempotente)
-WITH inserted_leaders AS (
-  INSERT INTO directus_users (id, email, first_name, last_name, status, password)
-  SELECT gen_random_uuid(),
-         format('leader%02s@example.com', gs),
-         'Leader', gs::text,
-         'active',
-         'x'
-  FROM generate_series(1, 20) AS gs
-  ON CONFLICT (email) DO NOTHING
-  RETURNING id, email
+-- 1) Aguarda o Directus criar suas system tables (até 120s)
+DO $$
+DECLARE
+  i int := 0;
+BEGIN
+  WHILE to_regclass('public.directus_users') IS NULL LOOP
+    PERFORM pg_sleep(1);
+    i := i + 1;
+    IF i > 120 THEN
+      RAISE EXCEPTION 'Timeout: public.directus_users não existe após 120s. Suba o Directus antes do seed.';
+    END IF;
+  END LOOP;
+END $$;
+
+-- 2) CATALOGO DE ROLES (alvos de PDI) — idempotente por nome
+WITH roles(name, description, required_skills, important_skills, success_criteria) AS (
+  VALUES
+    ('Aprendiz Administrativo', 'Suporte a rotinas de escritório e arquivo',
+      '["organização","noções de Excel","redação básica"]',
+      '["atenção a detalhes","comunicação"]',
+      'Cumpre checklist diário com autonomia crescente'),
+    ('Aprendiz de Logística', 'Apoio a recebimento, estoque e expedição',
+      '["noções de inventário","endereçamento","coleta de dados"]',
+      '["disciplina","trabalho em equipe"]',
+      'Realiza contagens e registra divergências corretamente'),
+    ('Aprendiz de Atendimento', 'Atendimento básico ao cliente/usuário',
+      '["escuta ativa","registro de chamados"]',
+      '["empatia","clareza verbal"]',
+      'Mantém NPS interno satisfatório'),
+    ('Aprendiz de TI (Suporte)', 'Suporte nível 1 (periféricos, contas, senhas)',
+      '["noções de SO","instalação simples","documentação"]',
+      '["curiosidade técnica","organização"]',
+      'Fecha chamados L1 dentro do SLA'),
+    ('Aprendiz Financeiro', 'Lançamentos, organização de documentos e conciliações simples',
+      '["noções de planilhas","arquivamento"]',
+      '["sigilo","atenção a detalhes"]',
+      'Concilia caixas de baixa complexidade'),
+    ('Aprendiz de RH', 'Apoio a cadastros, ponto e documentação',
+      '["arquivamento","planilhas"]',
+      '["confidencialidade","cordialidade"]',
+      'Mantém dossiês completos e organizados'),
+    ('Aprendiz de Marketing', 'Apoio em peças simples e publicações',
+      '["noções de redes sociais","copy básica"]',
+      '["criatividade","consistência"]',
+      'Executa calendário de posts com qualidade'),
+    ('Aprendiz de Operações', 'Rotinas operacionais da área fim',
+      '["checklist de processo","registro de ocorrências"]',
+      '["compromisso com processo","trabalho em equipe"]',
+      'Aponta e sugere melhorias de fluxo'),
+    ('Auxiliar de Almoxarifado', 'Entrada e saída de materiais',
+      '["endereçamento","coleta por lista"]',
+      '["organização","agilidade"]',
+      'Zera divergências simples de estoque'),
+    ('Auxiliar de Escritório', 'Suporte geral administrativo',
+      '["documentação","e-mail","agenda"]',
+      '["proatividade","clareza escrita"]',
+      'Mantém fluxo de documentos sem atrasos'),
+    ('Assistente de Vendas (Jr.)', 'Pré-venda e organização de leads',
+      '["cadastro CRM","pesquisa básica"]',
+      '["comunicação","resiliência"]',
+      'Gera X oportunidades qualificadas/semana'),
+    ('Assistente de Produção (Jr.)', 'Apoio em linha de produção',
+      '["controle básico","checklist de qualidade"]',
+      '["atenção","segurança"]',
+      'Cumpre metas de qualidade e ritmo')
 )
--- B) usa exatamente esses usuários para popular internship_leaders (sem duplicar)
+INSERT INTO public.target_roles (name, description, required_skills, important_skills, success_criteria)
+SELECT r.name, r.description, r.required_skills::json, r.important_skills::json, r.success_criteria
+FROM roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.target_roles tr WHERE tr.name = r.name);
+
+-- 3) LÍDERES
+-- 3.1) cria 20 users (idempotente por e-mail)
+WITH RECURSIVE seq AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM seq WHERE n < 20),
+names AS (
+  SELECT
+    n,
+    (ARRAY['Ana','Bruno','Carla','Diego','Eduarda','Fábio','Gabriela','Heitor','Isabela','João','Kamila','Lucas','Mariana','Nicolas','Olívia','Paulo','Queila','Rafael','Sofia','Thiago'])[(n % 20)+1] AS first_name,
+    (ARRAY['Silva','Souza','Oliveira','Santos','Pereira','Lima','Carvalho','Almeida','Costa','Gomes','Ribeiro','Martins','Rocha','Barbosa','Dias','Teixeira','Fernandes','Araujo','Castro','Moreira'])[(n % 20)+1] AS last_name
+  FROM seq
+),
+to_insert AS (
+  SELECT gen_random_uuid() AS id,
+         format('leader%02s@seed.local', n) AS email,
+         first_name, last_name
+  FROM names
+)
+INSERT INTO public.directus_users (id, email, first_name, last_name, status, password)
+SELECT id, email, first_name, last_name, 'active', 'x'
+FROM to_insert ti
+WHERE NOT EXISTS (SELECT 1 FROM public.directus_users u WHERE u.email = ti.email);
+
+-- 3.2) cria registros em internship_leaders p/ esses users (idempotente por user_id)
+WITH lu AS (
+  SELECT id, email, ROW_NUMBER() OVER (ORDER BY email) AS rn
+  FROM public.directus_users
+  WHERE email LIKE 'leader%@seed.local'
+)
 INSERT INTO public.internship_leaders (status, phone_number, user_id, position, department)
-SELECT 
+SELECT
   'active',
-  '+5511' || LPAD((ROW_NUMBER() OVER (ORDER BY email) + 9000000000)::TEXT, 11, '0'),
+  '+55119' || LPAD(rn::text, 8, '0'),
   id,
-  CASE ((ROW_NUMBER() OVER (ORDER BY email)) % 4)
-    WHEN 0 THEN 'Manager'
-    WHEN 1 THEN 'Lead'
-    WHEN 2 THEN 'Senior'
-    ELSE 'Coordinator'
-  END,
-  CASE ((ROW_NUMBER() OVER (ORDER BY email)) % 5)
-    WHEN 0 THEN 'Engineering'
-    WHEN 1 THEN 'Design'
-    WHEN 2 THEN 'Product'
-    WHEN 3 THEN 'Marketing'
-    ELSE 'Operations'
-  END
-FROM inserted_leaders L
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.internship_leaders il WHERE il.user_id = L.id
-);
+  (CASE (rn % 4) WHEN 1 THEN 'Lead' WHEN 2 THEN 'Senior' WHEN 3 THEN 'Coordinator' ELSE 'Manager' END),
+  (CASE (rn % 5) WHEN 1 THEN 'Engineering' WHEN 2 THEN 'Design' WHEN 3 THEN 'Product' WHEN 4 THEN 'Marketing' ELSE 'Operations' END)
+FROM lu
+WHERE NOT EXISTS (SELECT 1 FROM public.internship_leaders il WHERE il.user_id = lu.id);
 
--- (mantido) cria 10 roles
-INSERT INTO public.target_roles (name, description)
-SELECT 'Role ' || generate_series, 'Descrição para Role ' || generate_series
-FROM generate_series(1, 10)
-ON CONFLICT DO NOTHING;
+-- 4) TALENTOS (5.000)
+-- 4.1) cria 5.000 users (idempotente por e-mail)
+WITH RECURSIVE seq AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM seq WHERE n < 5000),
+firsts AS (
+  SELECT
+    n,
+    (ARRAY['Arthur','Bianca','Caio','Daniela','Enzo','Fernanda','Gustavo','Helena','Igor','Júlia','Kauan','Larissa','Miguel','Nathalia','Otávio','Pietra','Ruan','Sabrina','Tales','Vitória'])[(n % 20)+1] AS first_name,
+    (ARRAY['Alves','Batista','Cardoso','Duarte','Esteves','Faria','Garcia','Henrique','Ibrahim','Jardim','Klein','Leite','Macedo','Nunes','Ortega','Pacheco','Queiroz','Rezende','Sales','Vieira'])[(n % 20)+1] AS last_name
+  FROM seq
+),
+to_insert AS (
+  SELECT gen_random_uuid() AS id,
+         format('talent%05s@seed.local', n) AS email,
+         first_name, last_name
+  FROM firsts
+)
+INSERT INTO public.directus_users (id, email, first_name, last_name, status, password)
+SELECT id, email, first_name, last_name, 'active', 'x'
+FROM to_insert ti
+WHERE NOT EXISTS (SELECT 1 FROM public.directus_users u WHERE u.email = ti.email);
 
--- C) cria 100 usuários de TALENTOS em directus_users (idempotente)
-WITH new_talents AS (
-  INSERT INTO directus_users (id, email, first_name, last_name, status, password)
-  SELECT gen_random_uuid(),
-         format('talent%03s@example.com', gs),
-         'Talent', gs::text,
-         'active',
-         'x'
-  FROM generate_series(1, 100) AS gs
-  ON CONFLICT (email) DO NOTHING
-  RETURNING id, email
-),
-ntu AS ( -- numera para correlacionar 1..100
-  SELECT id AS user_id,
-         ROW_NUMBER() OVER (ORDER BY email) AS rn
-  FROM new_talents
-),
-gs AS (
-  SELECT generate_series(1, 100) AS rn
+-- 4.2) INSERE/ATUALIZA talents (variação por linha com LATERAL)
+-- 4.2) INSERE/ATUALIZA talents (variação garantida por linha via aritmética modular)
+WITH
+  -- usuários de talentos (5k) com numeração estável
+  talent_users AS (
+    SELECT u.id AS user_id,
+           u.email,
+           ROW_NUMBER() OVER (ORDER BY u.email) AS rn
+    FROM public.directus_users u
+    WHERE u.email LIKE 'talent%@seed.local'
+    ORDER BY u.email
+    LIMIT 5000
+  ),
+  -- catálogos como arrays (sem superior)
+  courses AS (
+    SELECT ARRAY[
+      'Ensino Médio – 1º ano',
+      'Ensino Médio – 2º ano',
+      'Ensino Médio – 3º ano',
+      'Curso Técnico em Administração',
+      'Curso Técnico em Informática',
+      'Curso Técnico em Logística',
+      'Curso Técnico em Produção'
+    ] AS arr
+  ),
+  schools AS (
+    SELECT ARRAY[
+      'EE Estadual João XXIII',
+      'Colégio Municipal Vila Nova',
+      'SENAI Unidade Brás',
+      'SENAI Unidade Santo André',
+      'SENAC Lapa',
+      'IFSP (Técnico Integrado)',
+      'EE Estadual Carlos Drummond'
+    ] AS arr
+  ),
+  -- leaders e roles com numeração e totais
+  leaders_rows AS (
+    SELECT il.id AS leader_id,
+           il.department,
+           ROW_NUMBER() OVER (ORDER BY il.id) AS rn
+    FROM public.internship_leaders il
+  ),
+  leaders_tot AS (
+    SELECT COUNT(*)::int AS n FROM public.internship_leaders
+  ),
+  roles_rows AS (
+    SELECT tr.id AS role_id,
+           ROW_NUMBER() OVER (ORDER BY tr.id) AS rn
+    FROM public.target_roles tr
+  ),
+  roles_tot AS (
+    SELECT COUNT(*)::int AS n FROM public.target_roles
+  ),
+  ins AS (
+    INSERT INTO public.talents (
+      id, date_created, date_updated, date_deleted,
+      user_id, phone_number,
+      start_date, end_date,
+      graduation_course, graduation_institution,
+      target_role_id, leader_id, department,
+      current_status, last_status_change_at, verified_phone_number,
+      orchestrator_state, reset_count, last_reset_at,
+      pdi_plan_ready, current_cycle, current_cycle_id
+    )
+    SELECT
+      gen_random_uuid() AS id,
+      NOW() - ((tu.rn % 90) || ' days')::interval AS date_created,
+      NOW() - ((tu.rn % 30) || ' days')::interval AS date_updated,
+      NULL::timestamp,
+      tu.user_id,
+      -- telefone único por RN
+      '+55119' || LPAD(tu.rn::text, 8, '0') AS phone_number,
+
+      -- janela: início em [-180..0] e fim = início + [30..210]
+      (CURRENT_DATE - ((tu.rn * 3) % 181) * INTERVAL '1 day')::timestamp AS start_date,
+      (
+        (CURRENT_DATE - ((tu.rn * 3) % 181) * INTERVAL '1 day')
+        + ((30 + ((tu.rn * 7) % 181)) * INTERVAL '1 day')
+      )::timestamp AS end_date,
+
+      -- escolha determinística de curso/escola por índice
+      (SELECT arr[ ((tu.rn * 13 + 5) % array_length(arr,1)) + 1 ] FROM courses) AS graduation_course,
+      (SELECT arr[ ((tu.rn * 17 + 3) % array_length(arr,1)) + 1 ] FROM schools) AS graduation_institution,
+
+      -- escolhe role e leader por RN mapeado no total de itens
+      rr.role_id      AS target_role_id,
+      lr.leader_id    AS leader_id,
+      lr.department   AS department,
+
+      -- status: distribuição por faixas do RN
+      CASE
+        WHEN (tu.rn % 20) < 11 THEN 'ONBOARDING'           -- ~55%
+        WHEN (tu.rn % 20) < 17 THEN 'ACTIVE'               -- ~30%
+        WHEN (tu.rn % 20) < 19 THEN 'PENDING_FIRST_ACCESS' -- ~10%
+        ELSE 'INACTIVE'                                    -- ~5%
+      END AS current_status,
+
+      NOW() - ((tu.rn % 45) || ' days')::interval AS last_status_change_at,
+
+      CASE WHEN (tu.rn % 3) = 0
+           THEN '+55119' || LPAD(tu.rn::text, 8, '0')
+           ELSE NULL
+      END AS verified_phone_number,
+
+      CASE
+        WHEN (tu.rn % 10) < 5 THEN 'ONBOARDING'
+        WHEN (tu.rn % 10) < 8 THEN 'ACTIVE'
+        WHEN (tu.rn % 10) < 9 THEN 'PENDING'
+        ELSE NULL
+      END AS orchestrator_state,
+
+      CASE WHEN (tu.rn % 5) = 0 THEN 1 + (tu.rn % 3) ELSE 0 END AS reset_count,
+      CASE WHEN (tu.rn % 5) = 0 THEN NOW() - ((tu.rn % 60) || ' days')::interval ELSE NULL END AS last_reset_at,
+
+      ((tu.rn % 4) = 0) AS pdi_plan_ready,
+      (tu.rn % 3) + 1   AS current_cycle,  -- 1..3
+      CASE WHEN (tu.rn % 10) = 0 THEN gen_random_uuid() ELSE NULL END AS current_cycle_id
+
+    FROM talent_users tu
+    -- mapeia para um leader
+    JOIN leaders_tot lt ON TRUE
+    JOIN leaders_rows lr
+      ON lr.rn = ((tu.rn * 31 + 7) % lt.n) + 1
+    -- mapeia para um role
+    JOIN roles_tot rt  ON TRUE
+    JOIN roles_rows rr
+      ON rr.rn = ((tu.rn * 19 + 11) % rt.n) + 1
+
+    ON CONFLICT (user_id) DO UPDATE SET
+      phone_number            = EXCLUDED.phone_number,
+      date_updated            = NOW(),
+      start_date              = EXCLUDED.start_date,
+      end_date                = EXCLUDED.end_date,
+      graduation_course       = EXCLUDED.graduation_course,
+      graduation_institution  = EXCLUDED.graduation_institution,
+      target_role_id          = EXCLUDED.target_role_id,
+      leader_id               = EXCLUDED.leader_id,
+      department              = EXCLUDED.department,
+      current_status          = EXCLUDED.current_status,
+      last_status_change_at   = EXCLUDED.last_status_change_at,
+      verified_phone_number   = EXCLUDED.verified_phone_number,
+      orchestrator_state      = EXCLUDED.orchestrator_state,
+      reset_count             = EXCLUDED.reset_count,
+      last_reset_at           = EXCLUDED.last_reset_at,
+      pdi_plan_ready          = EXCLUDED.pdi_plan_ready,
+      current_cycle           = EXCLUDED.current_cycle,
+      current_cycle_id        = EXCLUDED.current_cycle_id
+    RETURNING 1
 )
--- (mantido) INSERE 100 talentos com pequenas trocas:
-INSERT INTO public.talents (
-  id, date_created, date_updated, user_id, phone_number, start_date, end_date,
-  target_role_id, leader_id, department, current_status, orchestrator_state,
-  pdi_plan_ready, current_cycle
-)
-SELECT 
-  gen_random_uuid() AS id,
-  NOW() - (random() * INTERVAL '90 days')  AS date_created,
-  NOW() - (random() * INTERVAL '30 days')  AS date_updated,
-  ntu.user_id,                                             -- <=== em vez de gen_random_uuid()
-  '+5511' || LPAD((gs.rn + 9900000000)::TEXT, 11, '0')     -- (mantido)
-    AS phone_number,
-  CURRENT_DATE - (random() * INTERVAL '180 days') AS start_date,
-  CURRENT_DATE + (random() * INTERVAL '180 days') AS end_date,
-  (SELECT id FROM public.target_roles ORDER BY random() LIMIT 1)        -- <=== id real
-    AS target_role_id,
-  (SELECT id FROM public.internship_leaders ORDER BY random() LIMIT 1)  -- <=== id real
-    AS leader_id,
-  CASE (floor(random() * 5))
-    WHEN 0 THEN 'Engineering'
-    WHEN 1 THEN 'Design'
-    WHEN 2 THEN 'Product'
-    WHEN 3 THEN 'Marketing'
-    ELSE 'Operations'
-  END AS department,
-  CASE (floor(random() * 4))
-    WHEN 0 THEN 'ACTIVE'
-    WHEN 1 THEN 'PENDING_FIRST_ACCESS'
-    WHEN 2 THEN 'INACTIVE'
-    ELSE 'ONBOARDING'
-  END AS current_status,
-  CASE (floor(random() * 4))
-    WHEN 0 THEN 'ACTIVE'
-    WHEN 1 THEN 'ONBOARDING'
-    WHEN 2 THEN 'PENDING'
-    ELSE NULL
-  END AS orchestrator_state,
-  (random() > 0.5) AS pdi_plan_ready,
-  (1 + floor(random() * 3))::INTEGER AS current_cycle
-FROM gs
-JOIN ntu USING (rn)
-ON CONFLICT DO NOTHING;
+SELECT COUNT(*) AS inserted_or_updated FROM ins;
+
+
+COMMIT;
