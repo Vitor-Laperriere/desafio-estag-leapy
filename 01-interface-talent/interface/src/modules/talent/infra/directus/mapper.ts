@@ -4,7 +4,13 @@ type DirectusRelation<T> = T | null | undefined;
 
 type DirectusTalentRow = {
   id: string;
-  user_id?: DirectusRelation<{ email?: string | null }>;
+  user_id?: DirectusRelation<{
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  }>;
+  graduation_course?: string | null;
+  talent_current_skills?: string | string[] | null;
   department?: string | null;
   current_status?: string | null;
   orchestrator_state?: string | null;
@@ -26,7 +32,11 @@ type DirectusTalentRow = {
 export function mapDirectusTalent(row: DirectusTalentRow): Talent {
   return {
     id: row.id,
+    userFirstName: row.user_id?.first_name ?? null,
+    userLastName: row.user_id?.last_name ?? null,
     userEmail: row.user_id?.email ?? null,
+    graduationCourse: row.graduation_course ?? null,
+    currentSkills: row.talent_current_skills ?? null,
     department: row.department ?? null,
     currentStatus: row.current_status ?? null,
     orchestratorState: row.orchestrator_state ?? null,

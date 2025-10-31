@@ -110,6 +110,9 @@ export function TalentsTable({
         <table className="min-w-[900px] w-full text-sm">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="text-left text-xs uppercase text-gray-600">
+              <th className="px-3 py-2">Nome</th>
+              <th className="px-3 py-2">Escolaridade</th>
+              <th className="px-3 py-2">Skills</th>
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Departamento</th>
               <th className="px-3 py-2">Status</th>
@@ -124,7 +127,22 @@ export function TalentsTable({
           <tbody className="divide-y divide-gray-200 bg-white">
             {talents.map((t) => (
               <tr key={t.id} className="odd:bg-white even:bg-gray-50">
-                <td className="px-3 py-2 font-medium">{t.userEmail ?? "—"}</td>
+                <td className="px-3 py-2 font-medium">
+                  {(() => {
+                    const parts = [t.userFirstName, t.userLastName].filter(
+                      (part): part is string => Boolean(part && part.trim())
+                    );
+                    if (parts.length) return parts.join(" ");
+                    return t.userEmail ?? "—";
+                  })()}
+                </td>
+                <td className="px-3 py-2">{t.graduationCourse ?? "—"}</td>
+                <td className="px-3 py-2">
+                  {Array.isArray(t.currentSkills)
+                    ? t.currentSkills.join(", ")
+                    : t.currentSkills ?? "—"}
+                </td>
+                <td className="px-3 py-2">{t.userEmail ?? "—"}</td>
                 <td className="px-3 py-2">{t.department ?? "—"}</td>
                 <td className="px-3 py-2">
                   <Badge color={statusColor(t.currentStatus)}>

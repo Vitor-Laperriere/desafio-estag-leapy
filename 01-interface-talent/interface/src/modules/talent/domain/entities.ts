@@ -1,6 +1,10 @@
 export type Talent = {
     id: string;
+    userFirstName?: string | null;
+    userLastName?: string | null;
     userEmail?: string | null;
+    graduationCourse?: string | null;
+    currentSkills?: string | string[] | null;
     department?: string | null;
     currentStatus?: string | null;
     orchestratorState?: string | null;
