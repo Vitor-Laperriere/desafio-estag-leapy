@@ -12,6 +12,7 @@ export type FilterChip = {
   label: string;
   value: string;
   onRemove: () => void;
+  variant?: "primary" | "secondary" | "accent";
 };
 
 type FiltersBarProps = {
@@ -44,6 +45,8 @@ type FiltersBarProps = {
     startTo: string;
     endFrom: string;
     endTo: string;
+    activeFrom: string;
+    activeTo: string;
   };
   handlers: {
     onGeneralQueryChange: (value: string) => void;
@@ -116,11 +119,18 @@ export function FiltersBar({
     return `${resultCount} ${suffix}`;
   }, [isLoading, resultCount]);
 
+  const isTodayActive =
+    Boolean(values.activeFrom && values.activeTo) && values.activeFrom === values.activeTo;
+  const isIncoming30 =
+    Boolean(values.startFrom && values.startTo) && !values.endFrom && !values.endTo;
+  const isEnding30 =
+    Boolean(values.endFrom && values.endTo) && !values.startFrom && !values.startTo;
+
   return (
     <section
       ref={innerRef}
       id="filters"
-      className="card space-y-6 px-6 py-5"
+      className="card w-full space-y-6 px-6 py-5"
     >
       <form
         role="search"
@@ -136,6 +146,7 @@ export function FiltersBar({
               placeholder="Busque por departamento, curso, instituição, líder, cargo ..."
               value={values.generalQuery}
               onChange={handlers.onGeneralQueryChange}
+              isActive={values.generalQuery.trim().length > 0}
             />
             <LabeledInput
               id={emailId}
@@ -143,6 +154,7 @@ export function FiltersBar({
               placeholder="ex: talento@example.com"
               value={values.email}
               onChange={handlers.onEmailChange}
+              isActive={values.email.trim().length > 0}
             />
           </div>
 
@@ -153,6 +165,7 @@ export function FiltersBar({
               selected={values.courses}
               options={options.courses.map((value) => ({ value, label: value }))}
               onChange={handlers.onCoursesChange}
+              isActive={values.courses.length > 0}
             />
             <LabeledMultiSelect
               id="filter-institutions"
@@ -160,6 +173,7 @@ export function FiltersBar({
               selected={values.institutions}
               options={options.institutions.map((value) => ({ value, label: value }))}
               onChange={handlers.onInstitutionsChange}
+              isActive={values.institutions.length > 0}
             />
             <RangeInputs
               label="Ciclo atual (faixa)"
@@ -169,6 +183,7 @@ export function FiltersBar({
               maxValue={values.cycleMax}
               onMinChange={handlers.onCycleMinChange}
               onMaxChange={handlers.onCycleMaxChange}
+              isActive={Boolean(values.cycleMin || values.cycleMax)}
             />
             <LabeledMultiSelect
               id="filter-departments"
@@ -176,6 +191,7 @@ export function FiltersBar({
               selected={values.departments}
               options={options.departments}
               onChange={handlers.onDepartmentsChange}
+              isActive={values.departments.length > 0}
             />
             <LabeledMultiSelect
               id="filter-orchestrator"
@@ -183,8 +199,12 @@ export function FiltersBar({
               selected={values.orchestrators}
               options={options.orchestrators}
               onChange={handlers.onOrchestratorsChange}
+              isActive={values.orchestrators.length > 0 || values.orchestratorNull}
               footer={
-                <label className="flex items-center gap-2 rounded-md px-1 py-1 text-xs text-[var(--color-subtle)]">
+                <label
+                  className="filter-flag"
+                  data-active={values.orchestratorNull ? "true" : undefined}
+                >
                   <input
                     type="checkbox"
                     className="rounded border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-primary)] focus:ring-[var(--color-accent)]"
@@ -204,6 +224,7 @@ export function FiltersBar({
                 { value: "false", label: "Não" },
               ]}
               onChange={(next) => handlers.onPdiChange(next[0] ?? "")}
+              isActive={Boolean(values.pdi)}
             />
             <LabeledMultiSelect
               id="filter-status"
@@ -211,6 +232,7 @@ export function FiltersBar({
               selected={values.statuses}
               options={options.statuses}
               onChange={handlers.onStatusesChange}
+              isActive={values.statuses.length > 0}
             />
             <LabeledMultiSelect
               id="filter-leaders"
@@ -218,8 +240,12 @@ export function FiltersBar({
               selected={values.leaders}
               options={options.leaders}
               onChange={handlers.onLeadersChange}
+              isActive={values.leaders.length > 0 || values.noLeader}
               footer={
-                <label className="flex items-center gap-2 rounded-md px-1 py-1 text-xs text-[var(--color-subtle)]">
+                <label
+                  className="filter-flag"
+                  data-active={values.noLeader ? "true" : undefined}
+                >
                   <input
                     type="checkbox"
                     className="rounded border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-primary)] focus:ring-[var(--color-accent)]"
@@ -236,8 +262,12 @@ export function FiltersBar({
               selected={values.roles}
               options={options.roles}
               onChange={handlers.onRolesChange}
+              isActive={values.roles.length > 0 || values.noRole}
               footer={
-                <label className="flex items-center gap-2 rounded-md px-1 py-1 text-xs text-[var(--color-subtle)]">
+                <label
+                  className="filter-flag"
+                  data-active={values.noRole ? "true" : undefined}
+                >
                   <input
                     type="checkbox"
                     className="rounded border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-primary)] focus:ring-[var(--color-accent)]"
@@ -259,6 +289,7 @@ export function FiltersBar({
               toValue={values.startTo}
               onFromChange={handlers.onStartFromChange}
               onToChange={handlers.onStartToChange}
+              isActive={Boolean(values.startFrom || values.startTo)}
             />
             <DateRange
               label="Vigência - fim"
@@ -268,17 +299,33 @@ export function FiltersBar({
               toValue={values.endTo}
               onFromChange={handlers.onEndFromChange}
               onToChange={handlers.onEndToChange}
+              isActive={Boolean(values.endFrom || values.endTo)}
             />
           </div>
 
           <div className="flex flex-wrap gap-2" aria-label="Atalhos de vigência">
-            <button type="button" className="btn-ghost text-xs" onClick={quickRangeHandlers.today}>
+            <button
+              type="button"
+              className="btn-ghost text-xs"
+              data-active={isTodayActive ? "true" : undefined}
+              onClick={quickRangeHandlers.today}
+            >
               Ativos hoje
             </button>
-            <button type="button" className="btn-ghost text-xs" onClick={quickRangeHandlers.incoming30}>
+            <button
+              type="button"
+              className="btn-ghost text-xs"
+              data-active={isIncoming30 ? "true" : undefined}
+              onClick={quickRangeHandlers.incoming30}
+            >
               Entram nos próximos 30 dias
             </button>
-            <button type="button" className="btn-ghost text-xs" onClick={quickRangeHandlers.ending30}>
+            <button
+              type="button"
+              className="btn-ghost text-xs"
+              data-active={isEnding30 ? "true" : undefined}
+              onClick={quickRangeHandlers.ending30}
+            >
               Terminam nos próximos 30 dias
             </button>
           </div>
@@ -297,6 +344,7 @@ export function FiltersBar({
             <select
               id="page-size"
               className="select w-24"
+              data-active={limit !== 10 ? "true" : undefined}
               value={limit}
               onChange={(event) => onLimitChange(Number(event.target.value))}
             >
@@ -317,6 +365,7 @@ export function FiltersBar({
                 <select
                   id="sort-by"
                   className="select w-48"
+                  data-active={sortValue !== "-date_updated" ? "true" : undefined}
                   value={sortValue}
                   onChange={(event) => {
                     const next = event.target.value;
@@ -342,13 +391,17 @@ export function FiltersBar({
       {chips.length > 0 ? (
         <div className="flex flex-wrap gap-2" aria-live="polite">
           {chips.map((chip) => (
-            <span key={chip.id} className="chip">
+            <span
+              key={chip.id}
+              className="chip"
+              data-variant={chip.variant ?? undefined}
+            >
               <span className="truncate max-w-[10rem]" title={`${chip.label}: ${chip.value}`}>
                 <strong>{chip.label}:</strong> {chip.value}
               </span>
               <button
                 type="button"
-                className="text-xs text-[var(--color-subtle)] hover:text-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                className="chip-close"
                 onClick={chip.onRemove}
                 aria-label={`Remover filtro ${chip.label}`}
               >
@@ -381,16 +434,23 @@ type LabeledInputProps = {
   value: string;
   type?: string;
   onChange: (value: string) => void;
+  isActive?: boolean;
 };
 
-function LabeledInput({ id, label, placeholder, value, type = "text", onChange }: LabeledInputProps) {
+function LabeledInput({ id, label, placeholder, value, type = "text", onChange, isActive }: LabeledInputProps) {
+  const active = isActive ?? value.trim().length > 0;
   return (
-    <label htmlFor={id} className="flex flex-col gap-1 text-sm">
+    <label
+      htmlFor={id}
+      className="flex flex-col gap-1 text-sm"
+      data-active={active ? "true" : undefined}
+    >
       <span className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</span>
       <input
         id={id}
         type={type}
         className="input"
+        data-active={active ? "true" : undefined}
         placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -407,16 +467,22 @@ type RangeInputsProps = {
   maxValue: string;
   onMinChange: (value: string) => void;
   onMaxChange: (value: string) => void;
+  isActive?: boolean;
 };
 
-function RangeInputs({ label, minLabel, maxLabel, minValue, maxValue, onMinChange, onMaxChange }: RangeInputsProps) {
+function RangeInputs({ label, minLabel, maxLabel, minValue, maxValue, onMinChange, onMaxChange, isActive }: RangeInputsProps) {
+  const active = isActive ?? Boolean(minValue || maxValue);
   return (
-    <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2">
+    <fieldset
+      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2"
+      data-active={active ? "true" : undefined}
+    >
       <legend className="px-1 text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</legend>
       <div className="flex items-center gap-2">
         <input
           type="number"
           className="input w-24"
+          data-active={active ? "true" : undefined}
           value={minValue}
           onChange={(event) => onMinChange(event.target.value)}
           aria-label={minLabel}
@@ -425,6 +491,7 @@ function RangeInputs({ label, minLabel, maxLabel, minValue, maxValue, onMinChang
         <input
           type="number"
           className="input w-24"
+          data-active={active ? "true" : undefined}
           value={maxValue}
           onChange={(event) => onMaxChange(event.target.value)}
           aria-label={maxLabel}
@@ -442,11 +509,16 @@ type DateRangeProps = {
   toValue: string;
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
+  isActive?: boolean;
 };
 
-function DateRange({ label, fromId, toId, fromValue, toValue, onFromChange, onToChange }: DateRangeProps) {
+function DateRange({ label, fromId, toId, fromValue, toValue, onFromChange, onToChange, isActive }: DateRangeProps) {
+  const active = isActive ?? Boolean(fromValue || toValue);
   return (
-    <fieldset className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2">
+    <fieldset
+      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2"
+      data-active={active ? "true" : undefined}
+    >
       <legend className="px-1 text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</legend>
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
@@ -457,6 +529,7 @@ function DateRange({ label, fromId, toId, fromValue, toValue, onFromChange, onTo
             id={fromId}
             type="date"
             className="input"
+            data-active={active ? "true" : undefined}
             value={fromValue}
             onChange={(event) => onFromChange(event.target.value)}
           />
@@ -469,6 +542,7 @@ function DateRange({ label, fromId, toId, fromValue, toValue, onFromChange, onTo
             id={toId}
             type="date"
             className="input"
+            data-active={active ? "true" : undefined}
             value={toValue}
             onChange={(event) => onToChange(event.target.value)}
           />
@@ -485,13 +559,15 @@ type MultiSelectProps = {
   options: Option[];
   onChange: (values: string[]) => void;
   footer?: ReactNode;
+  isActive?: boolean;
 };
 
-function LabeledMultiSelect({ id, label, selected, options, onChange, footer }: MultiSelectProps) {
+function LabeledMultiSelect({ id, label, selected, options, onChange, footer, isActive }: MultiSelectProps) {
   const triggerId = useId();
   const labelId = useId();
+  const active = isActive ?? selected.length > 0;
   return (
-    <div className="flex flex-col gap-1 text-sm">
+    <div className="flex flex-col gap-1 text-sm" data-active={active ? "true" : undefined}>
       <span id={labelId} className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
         {label}
       </span>
@@ -503,6 +579,7 @@ function LabeledMultiSelect({ id, label, selected, options, onChange, footer }: 
         options={options}
         onChange={onChange}
         footer={footer}
+        isActive={active}
       />
     </div>
   );
@@ -516,9 +593,10 @@ type MultiSelectDropdownProps = {
   options: Option[];
   onChange: (values: string[]) => void;
   footer?: ReactNode;
+  isActive: boolean;
 };
 
-function MultiSelectDropdown({ id, triggerId, labelId, selected, options, onChange, footer }: MultiSelectDropdownProps) {
+function MultiSelectDropdown({ id, triggerId, labelId, selected, options, onChange, footer, isActive }: MultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -548,6 +626,7 @@ function MultiSelectDropdown({ id, triggerId, labelId, selected, options, onChan
         type="button"
         ref={triggerRef}
         className="select text-left"
+        data-active={isActive ? "true" : undefined}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-labelledby={`${labelId} ${triggerId}`}

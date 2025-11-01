@@ -237,17 +237,17 @@ export function TalentsTable({
                     </Cell>
                     <Cell value={talent.department} />
                     <Cell>
-                      <Badge color={statusColor(talent.currentStatus)}>
+                      <Badge variant={statusVariant(talent.currentStatus)}>
                         {talent.currentStatus ?? "—"}
                       </Badge>
                     </Cell>
                     <Cell>
-                      <Badge color={statusColor(talent.orchestratorState)}>
+                      <Badge variant={orchestratorVariant(talent.orchestratorState)}>
                         {talent.orchestratorState ?? "—"}
                       </Badge>
                     </Cell>
                     <Cell>
-                      <Badge color={talent.pdiPlanReady ? "green" : "gray"}>
+                      <Badge variant={booleanVariant(talent.pdiPlanReady)}>
                         {talent.pdiPlanReady ? "Sim" : "Não"}
                       </Badge>
                     </Cell>
@@ -359,35 +359,46 @@ function SortHeaderButton({ label, field, currentSort, onSortChange }: SortHeade
   );
 }
 
-type BadgeColor = "green" | "yellow" | "red" | "blue" | "gray";
+type BadgeVariant = "primary" | "secondary" | "accent" | "muted";
 
-function Badge({ children, color = "gray" }: { children: React.ReactNode; color?: BadgeColor }) {
-  const map: Record<BadgeColor, string> = {
-    green: "bg-emerald-500/20 text-emerald-200",
-    yellow: "bg-amber-500/20 text-amber-200",
-    red: "bg-red-500/20 text-red-200",
-    blue: "bg-sky-500/20 text-sky-200",
-    gray: "bg-[var(--color-soft)] text-[var(--color-subtle)]",
-  };
+function Badge({ children, variant = "muted" }: { children: React.ReactNode; variant?: BadgeVariant }) {
   return (
-    <span className={`chip border-0 bg-transparent px-3 py-1 font-medium ${map[color]}`}>{children}</span>
+    <span
+      className="chip chip--badge"
+      data-variant={variant !== "muted" ? variant : undefined}
+    >
+      {children}
+    </span>
   );
 }
 
-function statusColor(status?: string | null): BadgeColor {
+function statusVariant(status?: string | null): BadgeVariant {
   switch (status) {
     case "ACTIVE":
-      return "green";
+      return "primary";
     case "ONBOARDING":
-      return "blue";
-    case "PENDING_FIRST_ACCESS":
     case "PENDING":
-      return "yellow";
+    case "PENDING_FIRST_ACCESS":
+      return "accent";
     case "INACTIVE":
-      return "red";
+      return "secondary";
     default:
-      return "gray";
+      return "muted";
   }
+}
+
+function orchestratorVariant(state?: string | null): BadgeVariant {
+  if (!state) return "muted";
+  if (state === "ACTIVE") return "primary";
+  if (state === "PENDING") return "accent";
+  if (state === "ONBOARDING") return "accent";
+  return "accent";
+}
+
+function booleanVariant(value: boolean | null | undefined): BadgeVariant {
+  if (value === true) return "primary";
+  if (value === false) return "secondary";
+  return "muted";
 }
 
 function buildName(talent: Talent) {

@@ -183,6 +183,7 @@ export default function HomePage() {
         id: "generalQuery",
         label: "Busca",
         value: generalQuery,
+        variant: "accent",
         onRemove: () => {
           setPage(1);
           setGeneralQuery("");
@@ -194,6 +195,7 @@ export default function HomePage() {
         id: "email",
         label: "Email",
         value: searchEmail,
+        variant: "accent",
         onRemove: () => {
           setPage(1);
           setSearchEmail("");
@@ -205,6 +207,7 @@ export default function HomePage() {
         id: "departments",
         label: "Departamentos",
         value: departments.join(", "),
+        variant: "primary",
         onRemove: () => {
           setPage(1);
           setDepartments([]);
@@ -218,6 +221,7 @@ export default function HomePage() {
         value: orchestratorNull
           ? "Sem estado"
           : orchestrators.join(", "),
+        variant: orchestratorNull ? "secondary" : "accent",
         onRemove: () => {
           setPage(1);
           setOrchestrators([]);
@@ -230,6 +234,7 @@ export default function HomePage() {
         id: "pdi",
         label: "PDI",
         value: pdi === "true" ? "Sim" : "Não",
+        variant: pdi === "true" ? "primary" : "secondary",
         onRemove: () => {
           setPage(1);
           setPdi("");
@@ -241,6 +246,7 @@ export default function HomePage() {
         id: "statuses",
         label: "Status",
         value: statuses.join(", "),
+        variant: "secondary",
         onRemove: () => {
           setPage(1);
           setStatuses([]);
@@ -252,6 +258,7 @@ export default function HomePage() {
         id: "courses",
         label: "Cursos",
         value: courses.join(", "),
+        variant: "primary",
         onRemove: () => {
           setPage(1);
           setCourses([]);
@@ -263,6 +270,7 @@ export default function HomePage() {
         id: "institutions",
         label: "Instituições",
         value: institutions.join(", "),
+        variant: "primary",
         onRemove: () => {
           setPage(1);
           setInstitutions([]);
@@ -274,6 +282,7 @@ export default function HomePage() {
         id: "leaders",
         label: "Líder",
         value: noLeader ? "Sem líder" : leaders.join(", "),
+        variant: noLeader ? "secondary" : "accent",
         onRemove: () => {
           setPage(1);
           setLeaders([]);
@@ -286,6 +295,7 @@ export default function HomePage() {
         id: "roles",
         label: "Cargo alvo",
         value: noRole ? "Sem cargo" : roles.join(", "),
+        variant: noRole ? "secondary" : "accent",
         onRemove: () => {
           setPage(1);
           setRoles([]);
@@ -298,6 +308,7 @@ export default function HomePage() {
         id: "cycle-range",
         label: "Ciclo",
         value: `${cycleMin || "–"} a ${cycleMax || "–"}`,
+        variant: "accent",
         onRemove: () => {
           setPage(1);
           setCycleMin("");
@@ -310,6 +321,7 @@ export default function HomePage() {
         id: "start-range",
         label: "Início",
         value: `${startFrom || "–"} a ${startTo || "–"}`,
+        variant: "accent",
         onRemove: () => {
           setPage(1);
           setStartFrom("");
@@ -322,6 +334,7 @@ export default function HomePage() {
         id: "end-range",
         label: "Fim",
         value: `${endFrom || "–"} a ${endTo || "–"}`,
+        variant: "accent",
         onRemove: () => {
           setPage(1);
           setEndFrom("");
@@ -334,6 +347,7 @@ export default function HomePage() {
         id: "active-range",
         label: "Vigência rápida",
         value: `${activeFrom || "–"} a ${activeTo || "–"}`,
+        variant: "accent",
         onRemove: () => {
           setPage(1);
           setActiveFrom("");
@@ -347,6 +361,7 @@ export default function HomePage() {
         label: "Soft delete",
         value:
           deletedFilter === "include" ? "Incluir excluídos" : "Somente excluídos",
+        variant: "secondary",
         onRemove: () => {
           setPage(1);
           setDeletedFilter("active");
@@ -474,7 +489,10 @@ export default function HomePage() {
       <AdvancedInput label="Current cycle ID" value={currentCycleId} onChange={(value) => { setPage(1); setCurrentCycleId(value); }} />
       <AdvancedInput label="Telefone" value={phone} onChange={(value) => { setPage(1); setPhone(value); }} />
       <AdvancedInput label="Telefone verificado" value={verifiedPhone} onChange={(value) => { setPage(1); setVerifiedPhone(value); }} />
-      <label className="flex items-center gap-2 text-sm text-[var(--color-subtle)]">
+      <label
+        className="filter-flag"
+        data-active={onlyVerifiedPhone ? "true" : undefined}
+      >
         <input
           type="checkbox"
           className="rounded border-[var(--color-border)] bg-[var(--color-soft)] text-[var(--color-primary)] focus:ring-[var(--color-accent)]"
@@ -603,10 +621,14 @@ export default function HomePage() {
           setDateDeletedTo(value);
         }}
       />
-      <label className="flex flex-col gap-1 text-sm">
+      <label
+        className="flex flex-col gap-1 text-sm"
+        data-active={deletedFilter !== "active" ? "true" : undefined}
+      >
         <span className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">Registros excluídos</span>
         <select
           className="select"
+          data-active={deletedFilter !== "active" ? "true" : undefined}
           value={deletedFilter}
           onChange={(event) => {
             setPage(1);
@@ -662,6 +684,8 @@ export default function HomePage() {
           startTo,
           endFrom,
           endTo,
+          activeFrom,
+          activeTo,
         }}
         handlers={{
           onGeneralQueryChange: (value) => {
@@ -763,7 +787,7 @@ export default function HomePage() {
         advancedContent={advancedContent}
       />
 
-      <section className="card overflow-hidden">
+      <section className="card w-full overflow-hidden">
         <TalentsTable
           talents={talents}
           isLoading={isLoading}
@@ -792,12 +816,14 @@ type AdvancedInputProps = {
 };
 
 function AdvancedInput({ label, value, onChange, type = "text" }: AdvancedInputProps) {
+  const active = value.trim().length > 0;
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-sm" data-active={active ? "true" : undefined}>
       <span className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</span>
       <input
         type={type}
         className="input"
+        data-active={active ? "true" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
