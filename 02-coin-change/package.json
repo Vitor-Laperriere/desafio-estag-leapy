@@ -4,15 +4,18 @@
   "private": true,
   "description": "Desafio Coin Change - CLI com contrato de I/O via JSON.",
   "main": "src/index.js",
-  "scripts": {
+   "scripts": {
     "start": "node src/index.js",
-    "test": "node tests/harness.js"
+    "test": "node tests/harness.js",
+    "test:extra": "node tests/extra-harness.js",
+    "test:extra:stress": "STRESS=1 node tests/extra-harness.js",
+    "test:extra:fast": "RANDOM_N=20 RANDOM_MAX_AMOUNT=1000 node tests/extra-harness.js"
+  },
+  "devDependencies": {
+    "yaml": "^2.6.0"
   },
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT",
-  "devDependencies": {
-    "yaml": "^2.8.1"
-  }
+  "license": "MIT"
 }
