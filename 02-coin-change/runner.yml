@@ -1,2 +1,2 @@
-command: "node solution.js"
+command: "node src/index.js"
 workdir: "."
