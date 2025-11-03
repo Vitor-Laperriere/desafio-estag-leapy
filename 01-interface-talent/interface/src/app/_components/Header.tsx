@@ -25,10 +25,10 @@ export function Header({ title, actions }: HeaderProps) {
           Procurar talento
         </Link>
         <Link
-          href="/insights"
+          href="/talents/manage"
           className="rounded-md px-2 py-1 text-sm font-medium text-[var(--color-text)] transition-colors hover:text-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
         >
-          Cargos alvos
+          Gerenciar talentos
         </Link>
       </>
     ),

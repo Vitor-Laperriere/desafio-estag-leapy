@@ -1,6 +1,6 @@
 import { ListTalentsFilter } from "../../domain/filters";
 
-const DEFAULT_FIELDS =
+export const DEFAULT_FIELDS =
   "*,user_id.id,user_id.email,user_id.first_name,user_id.last_name,leader_id.*,target_role_id.*";
 
 const buildFilterKey = (segments: string[], operator: string) =>

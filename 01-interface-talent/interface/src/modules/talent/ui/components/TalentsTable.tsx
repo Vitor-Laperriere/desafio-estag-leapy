@@ -2,6 +2,7 @@
 
 // @improved Modern, accessible table with expandable rows for talent details
 import React, { Fragment, useState } from "react";
+import Link from "next/link";
 import { Talent } from "@/hooks/useTalents";
 
 type TalentsTableProps = {
@@ -329,13 +330,21 @@ export function TalentsTable({
                                 {fullName}
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              className="btn-ghost text-xs"
-                              onClick={() => toggleRow(talent.id)}
-                            >
-                              Fechar
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/talents/manage?id=${talent.id}`}
+                                className="btn-ghost text-xs"
+                              >
+                                Gerenciar
+                              </Link>
+                              <button
+                                type="button"
+                                className="btn-ghost text-xs"
+                                onClick={() => toggleRow(talent.id)}
+                              >
+                                Fechar
+                              </button>
+                            </div>
                           </div>
                           <div className="grid grid-cols-1 gap-6 px-6 py-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
                             <section className="space-y-3">
