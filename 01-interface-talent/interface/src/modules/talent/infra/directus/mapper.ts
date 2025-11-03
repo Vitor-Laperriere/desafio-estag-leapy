@@ -5,6 +5,7 @@ type DirectusRelation<T> = T | null | undefined;
 type DirectusTalentRow = {
   id: string;
   user_id?: DirectusRelation<{
+    id?: string | null;
     email?: string | null;
     first_name?: string | null;
     last_name?: string | null;
@@ -21,6 +22,13 @@ type DirectusTalentRow = {
   pdi_plan_ready?: boolean | null;
   start_date?: string | null;
   end_date?: string | null;
+  date_created?: string | null;
+  date_updated?: string | null;
+  date_deleted?: string | null;
+  phone_number?: string | null;
+  verified_phone_number?: string | null;
+  last_status_change_at?: string | null;
+  last_reset_at?: string | null;
   leader_id?: DirectusRelation<{
     id: number;
     position?: string | null;
@@ -36,12 +44,23 @@ type DirectusTalentRow = {
 export function mapDirectusTalent(row: DirectusTalentRow): Talent {
   return {
     id: row.id,
+    userId: row.user_id?.id ?? null,
     userFirstName: row.user_id?.first_name ?? null,
     userLastName: row.user_id?.last_name ?? null,
     userEmail: row.user_id?.email ?? null,
+    phoneNumber: row.phone_number ?? null,
+    verifiedPhoneNumber: row.verified_phone_number ?? null,
     graduationCourse: row.graduation_course ?? null,
     graduationInstitution: row.graduation_institution ?? null,
     currentSkills: row.talent_current_skills ?? null,
+    targetRoleId:
+      row.target_role_id && typeof row.target_role_id === "object"
+        ? row.target_role_id.id
+        : null,
+    leaderId:
+      row.leader_id && typeof row.leader_id === "object"
+        ? row.leader_id.id
+        : null,
     resetCount: row.reset_count ?? null,
     currentCycleId: row.current_cycle_id ?? null,
     currentCycle: row.current_cycle ?? null,
@@ -51,6 +70,11 @@ export function mapDirectusTalent(row: DirectusTalentRow): Talent {
     pdiPlanReady: row.pdi_plan_ready ?? null,
     startDate: row.start_date ?? null,
     endDate: row.end_date ?? null,
+    dateCreated: row.date_created ?? null,
+    dateUpdated: row.date_updated ?? null,
+    dateDeleted: row.date_deleted ?? null,
+    lastStatusChangeAt: row.last_status_change_at ?? null,
+    lastResetAt: row.last_reset_at ?? null,
     leader: row.leader_id
       ? {
           id: row.leader_id.id,

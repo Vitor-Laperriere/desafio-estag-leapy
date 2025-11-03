@@ -87,7 +87,6 @@ export function TalentsTable({
       <p className="text-sm text-[var(--color-subtle)]" aria-live="polite">
         Mostrando página {page} de {totalPages} • {total} resultado(s)
       </p>
-
       <div className="overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)]">
         <table className="min-w-[1600px] w-full text-sm text-[var(--color-text)]" role="table">
           <thead className="sticky top-0 z-10 bg-[var(--color-soft)]/80 backdrop-blur">
@@ -108,15 +107,6 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
-                <SortHeaderButton
-                  label="Instituição"
-                  field="graduation_institution"
-                  currentSort={currentSort}
-                  onSortChange={onSortChange}
-                />
-              </th>
-              <th scope="col" className="px-4 py-3">Skills</th>
               <th scope="col" className="px-4 py-3">
                 <SortHeaderButton
                   label="Email"
@@ -218,8 +208,6 @@ export function TalentsTable({
                       </span>
                     </Cell>
                     <Cell value={talent.graduationCourse} />
-                    <Cell value={talent.graduationInstitution} />
-                    <Cell value={Array.isArray(talent.currentSkills) ? talent.currentSkills.join(", ") : talent.currentSkills} />
                     <Cell>
                       {talent.userEmail ? (
                         <a
@@ -253,13 +241,13 @@ export function TalentsTable({
                     </Cell>
                     <Cell value={[talent.leader?.position, talent.leader?.department].filter(Boolean).join(" / ")} />
                     <Cell value={talent.targetRole?.name} />
-                    <Cell value={formatForTable(talent.startDate)} />
-                    <Cell value={formatForTable(talent.endDate)} />
+                    <Cell value={formatShortDate(talent.startDate)} />
+                    <Cell value={formatShortDate(talent.endDate)} />
                     <Cell value={talent.currentCycle != null ? String(talent.currentCycle) : undefined} />
                   </tr>
                   {isOpen ? (
                     <tr role="row" className="bg-[var(--color-card)]/80" id={`talent-details-${talent.id}`}>
-                      <td colSpan={14} className="p-0">
+                      <td colSpan={12} className="p-0">
                         <div className="mx-4 mb-4 -mt-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/60 shadow-lg shadow-black/20">
                           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
                             <div>
@@ -275,20 +263,9 @@ export function TalentsTable({
                             </button>
                           </div>
                           <div className="grid grid-cols-1 gap-4 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <Info label="Email" value={talent.userEmail} />
-                            <Info label="Departamento" value={talent.department} />
-                            <Info label="Status" value={talent.currentStatus} />
-                            <Info label="Orquestrador" value={talent.orchestratorState} />
-                            <Info label="PDI pronto" value={talent.pdiPlanReady ? "Sim" : "Não"} />
-                            <Info label="Curso" value={talent.graduationCourse} />
-                            <Info label="Instituição" value={talent.graduationInstitution} />
-                            <Info label="Skills" value={Array.isArray(talent.currentSkills) ? talent.currentSkills.join(", ") : talent.currentSkills} />
-                            <Info label="Ciclo atual" value={talent.currentCycle != null ? String(talent.currentCycle) : undefined} />
-                            <Info label="Ciclo ID" value={talent.currentCycleId} />
-                            <Info label="Líder" value={[talent.leader?.position, talent.leader?.department].filter(Boolean).join(" / ") || undefined} />
-                            <Info label="Cargo alvo" value={talent.targetRole?.name} />
-                            <Info label="Início" value={formatForTable(talent.startDate)} />
-                            <Info label="Fim" value={formatForTable(talent.endDate)} />
+                            {buildTalentDetailInfo(talent).map(({ label, value }) => (
+                              <Info key={label} label={label} value={value} />
+                            ))}
                           </div>
                         </div>
                       </td>
@@ -409,10 +386,88 @@ function buildName(talent: Talent) {
   return talent.userEmail ?? "—";
 }
 
-function formatForTable(value?: string | null) {
-  if (!value) return "—";
+const shortDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+function formatShortDate(value?: string | null) {
+  if (!value) return undefined;
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+  if (Number.isNaN(date.getTime())) return value;
+  return shortDateFormatter.format(date);
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return dateTimeFormatter.format(date);
+}
+
+function formatBoolean(value: boolean | null | undefined) {
+  if (value === true) return "Sim";
+  if (value === false) return "Não";
+  return undefined;
+}
+
+function formatNumber(value: number | null | undefined) {
+  return value === null || value === undefined ? undefined : String(value);
+}
+
+function formatSkills(skills: Talent["currentSkills"]) {
+  if (Array.isArray(skills)) return skills.join(", ");
+  return skills ?? undefined;
+}
+
+function buildTalentDetailInfo(talent: Talent) {
+  const leaderSummary = [talent.leader?.position, talent.leader?.department]
+    .filter(Boolean)
+    .join(" / ");
+
+  const details = [
+    { label: "ID", value: talent.id },
+    { label: "User ID", value: talent.userId },
+    { label: "Email", value: talent.userEmail },
+    { label: "Telefone", value: talent.phoneNumber },
+    { label: "Telefone verificado", value: talent.verifiedPhoneNumber },
+    { label: "Departamento", value: talent.department },
+    { label: "Status", value: talent.currentStatus },
+    { label: "Última mudança de status", value: formatDateTime(talent.lastStatusChangeAt) },
+    { label: "Orquestrador", value: talent.orchestratorState },
+    { label: "PDI pronto", value: formatBoolean(talent.pdiPlanReady) },
+    { label: "Curso", value: talent.graduationCourse },
+    { label: "Instituição", value: talent.graduationInstitution },
+    { label: "Início", value: formatShortDate(talent.startDate) },
+    { label: "Fim", value: formatShortDate(talent.endDate) },
+    { label: "Criado em", value: formatDateTime(talent.dateCreated) },
+    { label: "Atualizado em", value: formatDateTime(talent.dateUpdated) },
+    { label: "Excluído em", value: formatDateTime(talent.dateDeleted) },
+    { label: "Reset count", value: formatNumber(talent.resetCount) },
+    { label: "Último reset", value: formatDateTime(talent.lastResetAt) },
+    { label: "Ciclo atual", value: formatNumber(talent.currentCycle) },
+    { label: "Ciclo ID", value: talent.currentCycleId },
+    { label: "Cargo alvo ID", value: formatNumber(talent.targetRoleId ?? talent.targetRole?.id) },
+    { label: "Cargo alvo", value: talent.targetRole?.name },
+    { label: "Líder ID", value: formatNumber(talent.leaderId ?? talent.leader?.id) },
+    { label: "Líder", value: leaderSummary || undefined },
+  ];
+
+  if (talent.targetRole?.description) {
+    details.push({ label: "Descrição do cargo", value: talent.targetRole.description });
+  }
+  const skills = formatSkills(talent.currentSkills);
+  if (skills) {
+    details.push({ label: "Skills atuais", value: skills });
+  }
+
+  return details;
 }
 
 function Cell({ children, value, as: Element = "td", scope }: { children?: React.ReactNode; value?: string | null; as?: "td" | "th"; scope?: "row" | "col" }) {

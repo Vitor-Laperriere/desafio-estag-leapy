@@ -1,11 +1,16 @@
 export type Talent = {
   id: string;
+  userId?: string | null;
   userFirstName?: string | null;
   userLastName?: string | null;
   userEmail?: string | null;
+  phoneNumber?: string | null;
+  verifiedPhoneNumber?: string | null;
   graduationCourse?: string | null;
   graduationInstitution?: string | null;
   currentSkills?: string | string[] | null;
+  targetRoleId?: number | null;
+  leaderId?: number | null;
   resetCount?: number | null;
   currentCycleId?: string | null;
   currentCycle?: number | null;
@@ -15,6 +20,11 @@ export type Talent = {
   pdiPlanReady?: boolean | null;
   startDate?: string | null;
   endDate?: string | null;
+  dateCreated?: string | null;
+  dateUpdated?: string | null;
+  dateDeleted?: string | null;
+  lastStatusChangeAt?: string | null;
+  lastResetAt?: string | null;
   leader?: { id: number; position?: string | null; department?: string | null } | null;
   targetRole?: { id: number; name: string; description?: string | null } | null;
 };
