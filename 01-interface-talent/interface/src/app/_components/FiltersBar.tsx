@@ -86,6 +86,7 @@ type FiltersBarProps = {
   advancedOpen: boolean;
   onAdvancedToggle: (open: boolean) => void;
   advancedContent: ReactNode;
+  smartQueryString?: string;
 };
 
 export function FiltersBar({
@@ -103,6 +104,7 @@ export function FiltersBar({
   advancedOpen,
   onAdvancedToggle,
   advancedContent,
+  smartQueryString,
 }: FiltersBarProps) {
   const generalId = useId();
   const emailId = useId();
@@ -140,8 +142,8 @@ export function FiltersBar({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             <LabeledInput
               id={generalId}
-              label="Busca geral"
-              placeholder="Busque por departamento, curso, instituição, líder, cargo ..."
+              label="Busca inteligente (beta)"
+              placeholder="Ex: sem líder, departamento engenharia, últimos 15 dias"
               value={values.generalQuery}
               onChange={handlers.onGeneralQueryChange}
               isActive={values.generalQuery.trim().length > 0}
@@ -155,6 +157,14 @@ export function FiltersBar({
               isActive={values.email.trim().length > 0}
             />
           </div>
+          {smartQueryString ? (
+            <p className="text-xs text-[var(--color-subtle)]">
+              Filtro gerado:{" "}
+              <code className="break-all font-mono text-[var(--color-text)]">
+                {smartQueryString.startsWith("?") ? smartQueryString.slice(1) : smartQueryString}
+              </code>
+            </p>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-4">
             <LabeledMultiSelect

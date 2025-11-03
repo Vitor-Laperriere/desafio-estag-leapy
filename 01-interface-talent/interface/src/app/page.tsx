@@ -6,6 +6,11 @@ import useSWR from "swr";
 import { FiltersBar, type FilterChip, type Option } from "./_components/FiltersBar";
 import { useTalents } from "@/hooks/useTalents";
 import { TalentsTable } from "@/modules/talent/ui/components/TalentsTable";
+import {
+  normalizeSearchText,
+  parseSmartSearch,
+  type ParsedSearch,
+} from "@/modules/talent/application/search-intent/parser";
 
 const DEPARTMENT_OPTIONS: Option[] = ["Engineering", "Design", "Product", "Marketing", "Operations"].map(
   (dept) => ({ value: dept, label: dept })
@@ -17,6 +22,21 @@ const STATUS_OPTIONS: Option[] = [
   "INACTIVE",
   "ONBOARDING",
 ].map((value) => ({ value, label: value }));
+
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Ativo",
+  ONBOARDING: "Onboarding",
+  PENDING_FIRST_ACCESS: "Pendente (1º acesso)",
+  INACTIVE: "Inativo",
+};
+
+const DEPARTMENT_LABELS: Record<string, string> = {
+  Engineering: "Engenharia",
+  Design: "Design",
+  Product: "Produto",
+  Marketing: "Marketing",
+  Operations: "Operações",
+};
 
 const formatDate = (date: Date) => date.toISOString().slice(0, 10);
 const addDays = (date: Date, amount: number) => {
@@ -34,6 +54,7 @@ export default function HomePage() {
 
   // primary filters
   const [generalQuery, setGeneralQuery] = useState("");
+  const [smartSearch, setSmartSearch] = useState<ParsedSearch | null>(null);
   const [searchEmail, setSearchEmail] = useState("");
   const [departments, setDepartments] = useState<string[]>([]);
   const [orchestrators, setOrchestrators] = useState<string[]>([]);
@@ -121,6 +142,36 @@ export default function HomePage() {
     [rolesList]
   );
 
+  const normalizedRoleMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const role of rolesList?.data ?? []) {
+      if (!role.name) continue;
+      const key = normalizeSearchText(role.name);
+      if (!key) continue;
+      map.set(key, role.id);
+    }
+    return map;
+  }, [rolesList]);
+
+  const resolveTargetRoleIds = useCallback(
+    (names: string[]) => {
+      if (!names.length) return [];
+      const resolved: number[] = [];
+      const seen = new Set<number>();
+      for (const name of names) {
+        const key = normalizeSearchText(name);
+        if (!key) continue;
+        const id = normalizedRoleMap.get(key);
+        if (id !== undefined && !seen.has(id)) {
+          seen.add(id);
+          resolved.push(id);
+        }
+      }
+      return resolved;
+    },
+    [normalizedRoleMap]
+  );
+
   const cycleOptions = useMemo(() => {
     const raw = cyclesDistinct?.data ?? [];
     const seen = new Set<string>();
@@ -158,9 +209,37 @@ export default function HomePage() {
     };
   }, [cycles]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const trimmed = generalQuery.trim();
+      if (!trimmed) {
+        if (!cancelled) setSmartSearch(null);
+        return;
+      }
+
+      const parsed = await parseSmartSearch(trimmed, {
+        now: new Date(),
+        resolveTargetRoles: resolveTargetRoleIds,
+      });
+
+      if (!cancelled) {
+        setSmartSearch(parsed);
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [generalQuery, resolveTargetRoleIds]);
+
   const resetFilters = useCallback(() => {
     setPage(1);
     setGeneralQuery("");
+    setSmartSearch(null);
     setSearchEmail("");
     setDepartments([]);
     setOrchestrators([]);
@@ -229,8 +308,98 @@ export default function HomePage() {
         onRemove: () => {
           setPage(1);
           setGeneralQuery("");
+          setSmartSearch(null);
         },
       });
+    }
+    const ai = smartSearch?.extracted;
+    if (ai) {
+      const clearAi = () => {
+        setPage(1);
+        setGeneralQuery("");
+        setSmartSearch(null);
+      };
+      if (ai.current_cycle !== undefined) {
+        chips.push({
+          id: "ai-current-cycle",
+          label: "IA • Ciclo",
+          value: `Ciclo ${ai.current_cycle}`,
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.department) {
+        chips.push({
+          id: "ai-department",
+          label: "IA • Departamento",
+          value: DEPARTMENT_LABELS[ai.department] ?? ai.department,
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.current_status) {
+        chips.push({
+          id: "ai-status",
+          label: "IA • Status",
+          value: STATUS_LABELS[ai.current_status] ?? ai.current_status,
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.graduation_course) {
+        chips.push({
+          id: "ai-course",
+          label: "IA • Curso",
+          value: ai.graduation_course,
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.graduation_institution) {
+        chips.push({
+          id: "ai-institution",
+          label: "IA • Instituição",
+          value: ai.graduation_institution,
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.pdi_plan_ready !== undefined) {
+        chips.push({
+          id: "ai-pdi",
+          label: "IA • PDI",
+          value: ai.pdi_plan_ready ? "PDI pronto" : "Sem PDI",
+          variant: ai.pdi_plan_ready ? "primary" : "secondary",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.leader_null) {
+        chips.push({
+          id: "ai-leader-null",
+          label: "IA • Liderança",
+          value: "Sem líder",
+          variant: "secondary",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.date_updated_gte) {
+        chips.push({
+          id: "ai-updated",
+          label: "IA • Atualização",
+          value: `Desde ${ai.date_updated_gte}`,
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
+      if (ai.target_role_names?.length) {
+        chips.push({
+          id: "ai-roles",
+          label: "IA • Cargos",
+          value: ai.target_role_names.join(", "),
+          variant: "accent",
+          onRemove: clearAi,
+        });
+      }
     }
     if (searchEmail.trim()) {
       chips.push({
@@ -430,6 +599,7 @@ export default function HomePage() {
     endFrom,
     endTo,
     generalQuery,
+    smartSearch,
     institutions,
     leaders,
     noLeader,
@@ -482,24 +652,51 @@ export default function HomePage() {
 
   const matchMinParam = matchThreshold > 0 ? Number((matchThreshold / 100).toFixed(2)) : undefined;
 
+  const smartExtracted = smartSearch?.extracted;
+  const resolvedRoleIds = smartSearch?.resolvedRoleIds;
+
+  const combinedRoleIds = useMemo(() => {
+    const merged = new Set<string>();
+    for (const value of roles) {
+      const trimmed = String(value).trim();
+      if (trimmed) merged.add(trimmed);
+    }
+    for (const value of resolvedRoleIds ?? []) {
+      if (Number.isFinite(value)) {
+        merged.add(String(value));
+      }
+    }
+    return Array.from(merged);
+  }, [roles, resolvedRoleIds]);
+
+  const rolesCsv = combinedRoleIds.join(",");
+  const statusParam = statuses.length ? statuses.join(",") : smartExtracted?.current_status ?? "";
+  const pdiParam = pdi || (smartExtracted?.pdi_plan_ready !== undefined ? String(smartExtracted.pdi_plan_ready) : "");
+  const noLeaderParam = noLeader || smartExtracted?.leader_null ? true : undefined;
+  const departmentParam = departments.length ? "" : smartExtracted?.department ?? "";
+  const dateUpdatedFromParam = dateUpdatedFrom || smartExtracted?.date_updated_gte || "";
+  const currentCycleParam = currentCycle || (smartExtracted?.current_cycle !== undefined ? String(smartExtracted.current_cycle) : "");
+  const graduationCourseParam = courses.length ? "" : smartExtracted?.graduation_course ?? "";
+  const graduationInstitutionParam = institutions.length ? "" : smartExtracted?.graduation_institution ?? "";
+
   const { talents, total, isLoading, isError, errorDetail } = useTalents({
     page,
     limit,
     sort,
     email: searchEmail,
-    q: generalQuery,
-    department: "",
+    q: smartSearch ? "" : generalQuery,
+    department: departmentParam,
     departments: departments.join(","),
     orchestrator: "",
     orchestrators: orchestrators.join(","),
     orchestrator_null: orchestratorNull ? true : undefined,
-    pdi,
-    status: statuses.join(","),
+    pdi: pdiParam,
+    status: statusParam,
     leaderId: "",
     leaders: leaders.join(","),
     roleId: "",
-    roles: roles.join(","),
-    noLeader: noLeader ? true : undefined,
+    roles: rolesCsv,
+    noLeader: noLeaderParam,
     noRole: noRole ? true : undefined,
     currentCycleMin: cycleBounds.min,
     currentCycleMax: cycleBounds.max,
@@ -517,14 +714,14 @@ export default function HomePage() {
     onlyVerifiedPhone: onlyVerifiedPhone ? true : undefined,
     resetCountMin: resetMin,
     resetCountMax: resetMax,
-    currentCycle,
-    graduationCourse: "",
+    currentCycle: currentCycleParam,
+    graduationCourse: graduationCourseParam,
     graduationCourses: courses.join(","),
-    graduationInstitution: "",
+    graduationInstitution: graduationInstitutionParam,
     graduationInstitutions: institutions.join(","),
     dateCreatedFrom,
     dateCreatedTo,
-    dateUpdatedFrom,
+    dateUpdatedFrom: dateUpdatedFromParam,
     dateUpdatedTo,
     lastStatusChangeFrom,
     lastStatusChangeTo,
@@ -715,6 +912,7 @@ export default function HomePage() {
           setSort(value);
         }}
         onReset={resetFilters}
+        smartQueryString={smartSearch?.queryString}
         values={{
           generalQuery,
           email: searchEmail,
@@ -742,6 +940,9 @@ export default function HomePage() {
           onGeneralQueryChange: (value) => {
             setPage(1);
             setGeneralQuery(value);
+            if (!value.trim()) {
+              setSmartSearch(null);
+            }
           },
           onEmailChange: (value) => {
             setPage(1);
