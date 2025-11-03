@@ -1,0 +1,128 @@
+import { describe, expect, it } from "vitest";
+
+import { ListTalentsFilter } from "@application/talent/dto/list-talents-filter.dto";
+
+describe("ListTalentsFilter DTO", () => {
+  it("normaliza aliases, valores booleanos e listas CSV", () => {
+    const raw = {
+      page: "2",
+      limit: "15",
+      sort: "name,-date_updated",
+      email_search: "  test@example.com  ",
+      department_eq: "Engineering",
+      departments: "Engineering, Product ,",
+      orchestrator_state: "RUNNING",
+      orchestrators: "IN_PROGRESS, DONE ",
+      orchestrator_null: "true",
+      pdi_plan_ready: "false",
+      status: "ACTIVE , INACTIVE",
+      id: " id-123 ",
+      user_id: " user-9 ",
+      current_cycle_id: " cycle-1 ",
+      phone_number: "(11) 98888-7777",
+      verified_phone_number: " 21 98888-1111 ",
+      verified_only: "true",
+      leader_id: " 45 ",
+      leaders: "1, 2 , ",
+      target_role_id: " 5 ",
+      roles: "9,10",
+      leader_is_null: "false",
+      target_role_is_null: "true",
+      matchMin: "80",
+      reset_count_min: "2",
+      reset_count_max: "5",
+      current_cycle: "3",
+      current_cycle_min: "1",
+      current_cycle_max: "4",
+      graduation_course: " Administracao ",
+      graduationCourses: "Engenharia,Design",
+      graduation_institution: " UFSC ",
+      graduationInstitutions: "USP,MIT",
+      start_date_from: "2024-01-01",
+      start_date_to: "2024-01-31",
+      end_date_from: "2024-02-01",
+      end_date_to: "2024-02-28",
+      activeFrom: "2024-01-10",
+      activeTo: "2024-03-01",
+      dateCreatedFrom: "2024-01-05",
+      dateCreatedTo: "2024-01-20",
+      dateUpdatedFrom: "2024-02-01",
+      dateUpdatedTo: "2024-02-15",
+      lastStatusChangeFrom: "2024-01-12",
+      lastStatusChangeTo: "2024-01-25",
+      lastResetFrom: "2024-01-02",
+      lastResetTo: "2024-01-18",
+      withDeleted: "true",
+      dateDeletedFrom: "2024-02-10",
+      dateDeletedTo: "2024-02-20",
+      date_deleted_is_null: "false",
+      q: "  delta  ",
+    };
+
+    const parsed = ListTalentsFilter.parse(raw);
+
+    expect(parsed).toMatchObject({
+      page: 2,
+      limit: 15,
+      sort: ["name", "-date_updated"],
+      email: "test@example.com",
+      department: "Engineering",
+      departments: ["Engineering", "Product"],
+      orchestratorState: "RUNNING",
+      orchestrators: ["IN_PROGRESS", "DONE"],
+      missingOrchestrator: true,
+      pdiPlanReady: false,
+      statuses: ["ACTIVE", "INACTIVE"],
+      id: "id-123",
+      userId: "user-9",
+      currentCycleId: "cycle-1",
+      phoneNumber: "(11) 98888-7777",
+      verifiedPhoneNumber: "21 98888-1111",
+      onlyVerifiedPhone: true,
+      leaderId: "45",
+      leaders: ["1", "2"],
+      targetRoleId: "5",
+      roles: ["9", "10"],
+      missingLeader: false,
+      missingTargetRole: true,
+      matchMin: 80,
+      resetCountMin: 2,
+      resetCountMax: 5,
+      currentCycleEq: 3,
+      currentCycleMin: 1,
+      currentCycleMax: 4,
+      graduationCourse: "Administracao",
+      graduationCourses: ["Engenharia", "Design"],
+      graduationInstitution: "UFSC",
+      graduationInstitutions: ["USP", "MIT"],
+      startDateFrom: "2024-01-01",
+      startDateTo: "2024-01-31",
+      endDateFrom: "2024-02-01",
+      endDateTo: "2024-02-28",
+      activeFrom: "2024-01-10",
+      activeTo: "2024-03-01",
+      dateCreatedFrom: "2024-01-05",
+      dateCreatedTo: "2024-01-20",
+      dateUpdatedFrom: "2024-02-01",
+      dateUpdatedTo: "2024-02-15",
+      lastStatusChangeFrom: "2024-01-12",
+      lastStatusChangeTo: "2024-01-25",
+      lastResetFrom: "2024-01-02",
+      lastResetTo: "2024-01-18",
+      withDeleted: true,
+      dateDeletedFrom: "2024-02-10",
+      dateDeletedTo: "2024-02-20",
+      dateDeletedIsNull: false,
+      q: "delta",
+    });
+  });
+
+  it("aplica valores padrão quando parâmetros são omitidos", () => {
+    const parsed = ListTalentsFilter.parse({});
+
+    expect(parsed.page).toBe(1);
+    expect(parsed.limit).toBe(10);
+    expect(parsed.sort).toEqual(["-date_updated"]);
+    expect(parsed.withDeleted).toBeUndefined();
+  });
+});
