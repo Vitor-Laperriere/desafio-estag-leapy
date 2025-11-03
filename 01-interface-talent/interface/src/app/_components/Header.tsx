@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { useCallback } from "react";
 import type { ReactNode } from "react";
+import { useTheme } from "./ThemeProvider";
 
 export type HeaderProps = {
   title: string;
@@ -13,43 +14,39 @@ export type HeaderProps = {
 };
 
 export function Header({ title, actions }: HeaderProps) {
-  const defaultActions = useCallback(() => {
-    const dispatch = (type: string) => {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent(type));
-      }
-    };
-    return (
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => dispatch("filters:add")}
+  const { theme, toggleTheme } = useTheme();
+  const defaultActions = useCallback(
+    () => (
+      <>
+        <Link
+          href="/"
+          className="rounded-md px-2 py-1 text-sm font-medium text-[var(--color-text)] transition-colors hover:text-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
         >
-          Adicionar filtro
-        </button>
-        <Link href="/insights" className="btn-ghost">
-          Insights
+          Procurar talento
         </Link>
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => dispatch("filters:reset")}
+        <Link
+          href="/insights"
+          className="rounded-md px-2 py-1 text-sm font-medium text-[var(--color-text)] transition-colors hover:text-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
         >
-          Reset
-        </button>
-      </div>
-    );
-  }, []);
+          Cargos alvos
+        </Link>
+      </>
+    ),
+    []
+  );
 
   const renderedActions = actions ?? defaultActions();
+
+  const isDark = theme === "dark";
+  const toggleLabel = isDark ? "Ativar tema claro" : "Ativar tema escuro";
+  const toggleIcon = isDark ? "☀️" : "🌙";
 
   return (
     <header
       role="banner"
-      className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-card)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-card)]/80"
+      className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-header)]"
     >
-      <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-6 px-6 py-4">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-6 px-6 py-4">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -65,8 +62,17 @@ export function Header({ title, actions }: HeaderProps) {
             <h1 className="text-lg font-semibold text-[var(--color-text)]">{title}</h1>
           </div>
         </div>
-        <nav className="flex items-center gap-2" aria-label="Ações rápidas">
+        <nav className="flex items-center gap-4" aria-label="Ações rápidas">
           {renderedActions}
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-lg text-[var(--color-text)] transition-colors hover:text-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+            aria-label={toggleLabel}
+            onClick={toggleTheme}
+            title={toggleLabel}
+          >
+            <span aria-hidden>{toggleIcon}</span>
+          </button>
         </nav>
       </div>
     </header>

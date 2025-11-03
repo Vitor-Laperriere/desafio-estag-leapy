@@ -46,8 +46,7 @@ export default function HomePage() {
   const [noLeader, setNoLeader] = useState(false);
   const [roles, setRoles] = useState<string[]>([]);
   const [noRole, setNoRole] = useState(false);
-  const [cycleMin, setCycleMin] = useState("");
-  const [cycleMax, setCycleMax] = useState("");
+  const [cycles, setCycles] = useState<string[]>([]);
   const [startFrom, setStartFrom] = useState("");
   const [startTo, setStartTo] = useState("");
   const [endFrom, setEndFrom] = useState("");
@@ -79,6 +78,11 @@ export default function HomePage() {
 
   const { data: coursesDistinct } = useSWR<{ data: string[] }>(
     "/api/distinct?collection=talents&field=graduation_course",
+    (url) => fetch(url).then((response) => response.json()),
+    { revalidateOnFocus: false }
+  );
+  const { data: cyclesDistinct } = useSWR<{ data: (string | number)[] }>(
+    "/api/distinct?collection=talents&field=current_cycle",
     (url) => fetch(url).then((response) => response.json()),
     { revalidateOnFocus: false }
   );
@@ -116,6 +120,43 @@ export default function HomePage() {
     [rolesList]
   );
 
+  const cycleOptions = useMemo(() => {
+    const raw = cyclesDistinct?.data ?? [];
+    const seen = new Set<string>();
+    const values: string[] = [];
+    for (const item of raw) {
+      const value = String(item).trim();
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      values.push(value);
+    }
+    if (values.length === 0) {
+      return Array.from({ length: 12 }, (_, index) => String(index + 1));
+    }
+    return values.sort((a, b) => {
+      const numA = Number(a);
+      const numB = Number(b);
+      const aIsNumber = Number.isFinite(numA);
+      const bIsNumber = Number.isFinite(numB);
+      if (aIsNumber && bIsNumber) return numA - numB;
+      if (aIsNumber) return -1;
+      if (bIsNumber) return 1;
+      return a.localeCompare(b);
+    });
+  }, [cyclesDistinct]);
+
+  const cycleBounds = useMemo(() => {
+    if (!cycles.length) return { min: "", max: "" };
+    const numericValues = cycles
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value)) as number[];
+    if (!numericValues.length) return { min: "", max: "" };
+    return {
+      min: String(Math.min(...numericValues)),
+      max: String(Math.max(...numericValues)),
+    };
+  }, [cycles]);
+
   const resetFilters = useCallback(() => {
     setPage(1);
     setGeneralQuery("");
@@ -131,8 +172,7 @@ export default function HomePage() {
     setNoLeader(false);
     setRoles([]);
     setNoRole(false);
-    setCycleMin("");
-    setCycleMax("");
+    setCycles([]);
     setStartFrom("");
     setStartTo("");
     setEndFrom("");
@@ -303,16 +343,15 @@ export default function HomePage() {
         },
       });
     }
-    if (cycleMin || cycleMax) {
+    if (cycles.length) {
       chips.push({
-        id: "cycle-range",
+        id: "cycles",
         label: "Ciclo",
-        value: `${cycleMin || "–"} a ${cycleMax || "–"}`,
+        value: cycles.join(", "),
         variant: "accent",
         onRemove: () => {
           setPage(1);
-          setCycleMin("");
-          setCycleMax("");
+          setCycles([]);
         },
       });
     }
@@ -371,8 +410,7 @@ export default function HomePage() {
     return chips;
   }, [
     courses,
-    cycleMax,
-    cycleMin,
+    cycles,
     deletedFilter,
     departments,
     endFrom,
@@ -446,8 +484,8 @@ export default function HomePage() {
     roles: roles.join(","),
     noLeader: noLeader ? true : undefined,
     noRole: noRole ? true : undefined,
-    currentCycleMin: cycleMin,
-    currentCycleMax: cycleMax,
+    currentCycleMin: cycleBounds.min,
+    currentCycleMax: cycleBounds.max,
     startFrom,
     startTo,
     endFrom,
@@ -483,7 +521,7 @@ export default function HomePage() {
   });
 
   const advancedContent = (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <>
       <AdvancedInput label="ID (talent)" value={id} onChange={(value) => { setPage(1); setId(value); }} />
       <AdvancedInput label="User ID" value={userId} onChange={(value) => { setPage(1); setUserId(value); }} />
       <AdvancedInput label="Current cycle ID" value={currentCycleId} onChange={(value) => { setPage(1); setCurrentCycleId(value); }} />
@@ -640,7 +678,7 @@ export default function HomePage() {
           <option value="only">Somente excluídos</option>
         </select>
       </label>
-    </div>
+    </>
   );
 
   const coursesOptions = coursesDistinct?.data ?? [];
@@ -653,12 +691,7 @@ export default function HomePage() {
         resultCount={total}
         isLoading={isLoading}
         chips={filterChips}
-        limit={limit}
         sort={sort}
-        onLimitChange={(value) => {
-          setPage(1);
-          setLimit(value);
-        }}
         onSortChange={(value) => {
           setPage(1);
           setSort(value);
@@ -668,6 +701,7 @@ export default function HomePage() {
           generalQuery,
           email: searchEmail,
           courses,
+          cycles,
           institutions,
           departments,
           orchestrators,
@@ -678,8 +712,6 @@ export default function HomePage() {
           noLeader,
           roles,
           noRole,
-          cycleMin,
-          cycleMax,
           startFrom,
           startTo,
           endFrom,
@@ -743,13 +775,9 @@ export default function HomePage() {
             setNoRole(checked);
             if (checked) setRoles([]);
           },
-          onCycleMinChange: (value) => {
+          onCyclesChange: (next) => {
             setPage(1);
-            setCycleMin(value);
-          },
-          onCycleMaxChange: (value) => {
-            setPage(1);
-            setCycleMax(value);
+            setCycles(next);
           },
           onStartFromChange: (value) => {
             setPage(1);
@@ -775,6 +803,7 @@ export default function HomePage() {
         }}
         options={{
           courses: coursesOptions,
+          cycles: cycleOptions,
           institutions: institutionsOptions,
           departments: DEPARTMENT_OPTIONS,
           orchestrators: ORCHESTRATOR_OPTIONS,
@@ -802,6 +831,10 @@ export default function HomePage() {
             setSort(value);
           }}
           onPageChange={setPage}
+          onLimitChange={(value) => {
+            setPage(1);
+            setLimit(value);
+          }}
         />
       </section>
     </div>

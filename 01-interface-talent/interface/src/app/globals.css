@@ -10,23 +10,25 @@
   --color-card: #ffffff;
   --color-soft: #edf1f7;
   --color-border: #d6d9e3;
-  --color-text: #1a1b22;
+  --color-text: #1d0328;
+  --color-ink: #1d0328;
+  --color-header: #f3f3f3;
   --color-subtle: #4f5564;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --color-primary: #33ddb1;
-    --color-secondary: #fd5a5a;
-    --color-accent: #373afc;
-    --color-bg: #0b0c10;
-    --color-card: #12131a;
-    --color-soft: #1a1b22;
-    --color-border: #23242d;
-    --color-text: #e6e7ec;
-    --color-subtle: #a7aab8;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary: #33ddb1;
+  --color-secondary: #fd5a5a;
+  --color-accent: #373afc;
+  --color-bg: #0b0c10;
+  --color-card: #12131a;
+  --color-soft: #1a1b22;
+  --color-border: #23242d;
+  --color-text: #e6e7ec;
+  --color-ink: #e6e7ec;
+  --color-header: #1a1b22;
+  --color-subtle: #a7aab8;
 }
 
 html, body {
@@ -44,7 +46,7 @@ a {
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-lg px-3 py-2 font-medium text-sm bg-[var(--color-primary)] text-black hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] transition-colors;
+  @apply inline-flex items-center justify-center rounded-lg px-3 py-2 font-medium text-sm bg-[var(--color-primary)] text-[var(--color-ink)] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] transition-colors;
 }
 
 .btn-ghost {

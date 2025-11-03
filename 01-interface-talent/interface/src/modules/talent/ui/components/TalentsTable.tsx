@@ -161,7 +161,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-2 py-3">
+              <th scope="col" className="w-40 px-2 py-3">
                 <SortHeaderButton
                   label="Líder"
                   field="leader_id.position"
@@ -169,7 +169,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-2 py-3">
+              <th scope="col" className="w-40 px-2 py-3">
                 <SortHeaderButton
                   label="Cargo alvo"
                   field="target_role_id.name"
@@ -281,9 +281,15 @@ export function TalentsTable({
                         talent.leader?.department,
                       ]
                         .filter(Boolean)
-                        .join(" / ")}
+                        .join(", ")}
+                      allowWrap
+                      className="max-w-[10rem]"
                     />
-                    <Cell value={talent.targetRole?.name} />
+                    <Cell
+                      value={talent.targetRole?.name}
+                      allowWrap
+                      className="max-w-[10rem]"
+                    />
                     <Cell value={formatShortDate(talent.startDate)} />
                     <Cell value={formatShortDate(talent.endDate)} />
                     <Cell
@@ -572,21 +578,34 @@ function buildTalentDetailInfo(talent: Talent) {
   return details;
 }
 
+type CellProps = {
+  children?: React.ReactNode;
+  value?: string | null;
+  as?: "td" | "th";
+  scope?: "row" | "col";
+  allowWrap?: boolean;
+  className?: string;
+};
+
 function Cell({
   children,
   value,
   as: Element = "td",
   scope,
-}: {
-  children?: React.ReactNode;
-  value?: string | null;
-  as?: "td" | "th";
-  scope?: "row" | "col";
-}) {
+  allowWrap = false,
+  className = "",
+}: CellProps) {
+  const baseClasses =
+    "px-2 py-3 text-left text-sm text-[var(--color-text)] align-top";
+  const wrappingClasses = allowWrap
+    ? "whitespace-normal break-words"
+    : "whitespace-nowrap";
+  const cellClass = `${baseClasses} ${wrappingClasses} ${className}`.trim();
+
   const content =
     children ??
     (value ? (
-      <span className="truncate" title={value}>
+      <span className={allowWrap ? "block" : "truncate block"} title={value}>
         {value}
       </span>
     ) : (
@@ -595,7 +614,7 @@ function Cell({
   return (
     <Element
       scope={scope}
-      className="px-2 py-3 text-left text-sm text-[var(--color-text)]"
+      className={cellClass}
       title={typeof value === "string" ? value : undefined}
     >
       {content}

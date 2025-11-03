@@ -1,0 +1,3 @@
+# keep example tracked
+interface/.env.local
+!interface/.env.local.example

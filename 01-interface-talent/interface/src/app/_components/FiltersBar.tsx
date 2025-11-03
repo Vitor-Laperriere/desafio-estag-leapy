@@ -20,15 +20,14 @@ type FiltersBarProps = {
   resultCount: number;
   isLoading: boolean;
   chips: FilterChip[];
-  limit: number;
   sort: string;
-  onLimitChange: (limit: number) => void;
   onSortChange: (sort: string) => void;
   onReset: () => void;
   values: {
     generalQuery: string;
     email: string;
     courses: string[];
+    cycles: string[];
     institutions: string[];
     departments: string[];
     orchestrators: string[];
@@ -39,8 +38,6 @@ type FiltersBarProps = {
     noLeader: boolean;
     roles: string[];
     noRole: boolean;
-    cycleMin: string;
-    cycleMax: string;
     startFrom: string;
     startTo: string;
     endFrom: string;
@@ -62,8 +59,7 @@ type FiltersBarProps = {
     onNoLeaderChange: (checked: boolean) => void;
     onRolesChange: (values: string[]) => void;
     onNoRoleChange: (checked: boolean) => void;
-    onCycleMinChange: (value: string) => void;
-    onCycleMaxChange: (value: string) => void;
+    onCyclesChange: (values: string[]) => void;
     onStartFromChange: (value: string) => void;
     onStartToChange: (value: string) => void;
     onEndFromChange: (value: string) => void;
@@ -76,6 +72,7 @@ type FiltersBarProps = {
   };
   options: {
     courses: string[];
+    cycles: string[];
     institutions: string[];
     departments: Option[];
     orchestrators: Option[];
@@ -93,9 +90,7 @@ export function FiltersBar({
   resultCount,
   isLoading,
   chips,
-  limit,
   sort,
-  onLimitChange,
   onSortChange,
   onReset,
   values,
@@ -168,22 +163,12 @@ export function FiltersBar({
               isActive={values.courses.length > 0}
             />
             <LabeledMultiSelect
-              id="filter-institutions"
-              label="Instituição(ões)"
-              selected={values.institutions}
-              options={options.institutions.map((value) => ({ value, label: value }))}
-              onChange={handlers.onInstitutionsChange}
-              isActive={values.institutions.length > 0}
-            />
-            <RangeInputs
-              label="Ciclo atual (faixa)"
-              minLabel="Mínimo"
-              maxLabel="Máximo"
-              minValue={values.cycleMin}
-              maxValue={values.cycleMax}
-              onMinChange={handlers.onCycleMinChange}
-              onMaxChange={handlers.onCycleMaxChange}
-              isActive={Boolean(values.cycleMin || values.cycleMax)}
+              id="filter-cycles"
+              label="Ciclo atual"
+              selected={values.cycles}
+              options={options.cycles.map((value) => ({ value, label: value }))}
+              onChange={handlers.onCyclesChange}
+              isActive={values.cycles.length > 0}
             />
             <LabeledMultiSelect
               id="filter-departments"
@@ -303,7 +288,7 @@ export function FiltersBar({
             />
           </div>
 
-          <div className="flex flex-wrap gap-2" aria-label="Atalhos de vigência">
+            <div className="flex flex-wrap gap-2 justify-center" aria-label="Atalhos de vigência">
             <button
               type="button"
               className="btn-ghost text-xs"
@@ -337,24 +322,6 @@ export function FiltersBar({
           {resultText}
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label htmlFor="page-size" className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
-              Por página
-            </label>
-            <select
-              id="page-size"
-              className="select w-24"
-              data-active={limit !== 10 ? "true" : undefined}
-              value={limit}
-              onChange={(event) => onLimitChange(Number(event.target.value))}
-            >
-              {[10, 20, 50].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="flex items-center gap-2">
             <label htmlFor="sort-by" className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
               Ordenar
@@ -421,7 +388,19 @@ export function FiltersBar({
           Filtros avançados
           <span className="text-xs text-[var(--color-subtle)]">{advancedOpen ? "Ocultar" : "Mostrar"}</span>
         </summary>
-        <div className="mt-4 space-y-4 text-sm text-[var(--color-text)]">{advancedContent}</div>
+        <div className="mt-4 text-sm text-[var(--color-text)]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <LabeledMultiSelect
+              id="advanced-filter-institutions"
+              label="Instituição(ões)"
+              selected={values.institutions}
+              options={options.institutions.map((value) => ({ value, label: value }))}
+              onChange={handlers.onInstitutionsChange}
+              isActive={values.institutions.length > 0}
+            />
+            {advancedContent}
+          </div>
+        </div>
       </details>
     </section>
   );
@@ -456,48 +435,6 @@ function LabeledInput({ id, label, placeholder, value, type = "text", onChange, 
         onChange={(event) => onChange(event.target.value)}
       />
     </label>
-  );
-}
-
-type RangeInputsProps = {
-  label: string;
-  minLabel: string;
-  maxLabel: string;
-  minValue: string;
-  maxValue: string;
-  onMinChange: (value: string) => void;
-  onMaxChange: (value: string) => void;
-  isActive?: boolean;
-};
-
-function RangeInputs({ label, minLabel, maxLabel, minValue, maxValue, onMinChange, onMaxChange, isActive }: RangeInputsProps) {
-  const active = isActive ?? Boolean(minValue || maxValue);
-  return (
-    <fieldset
-      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2"
-      data-active={active ? "true" : undefined}
-    >
-      <legend className="px-1 text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</legend>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          className="input w-24"
-          data-active={active ? "true" : undefined}
-          value={minValue}
-          onChange={(event) => onMinChange(event.target.value)}
-          aria-label={minLabel}
-        />
-        <span className="text-[var(--color-subtle)]">–</span>
-        <input
-          type="number"
-          className="input w-24"
-          data-active={active ? "true" : undefined}
-          value={maxValue}
-          onChange={(event) => onMaxChange(event.target.value)}
-          aria-label={maxLabel}
-        />
-      </div>
-    </fieldset>
   );
 }
 

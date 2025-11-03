@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Header } from "./_components/Header";
+import { ThemeProvider } from "./_components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,10 +22,12 @@ export default function RootLayout({
       <body
         className={`${inter.className} min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]`}
       >
-        <Header title="Talentos" />
-        <main className="mx-auto flex w-full max-w-[2800px] flex-col gap-8 px-6 pb-16 pt-16">
-          {children}
-        </main>
+        <ThemeProvider>
+          <Header title="Talentos" />
+          <main className="mx-auto flex w-full max-w-[2800px] flex-col gap-8 px-6 pb-16 pt-16">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );
