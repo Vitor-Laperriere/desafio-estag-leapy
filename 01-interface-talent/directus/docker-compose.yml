@@ -1,27 +1,29 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:15
     container_name: leapy_pg
+    restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-leapy}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./seed/schema.sql:/docker-entrypoint-initdb.d/00_schema.sql:ro
-      - ./seed/seed.sql:/docker-entrypoint-initdb.d/10_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
 
   directus:
     image: directus/directus:10
     container_name: leapy_directus
     depends_on:
-      - postgres
-    ports:
-      - "${PORT:-8055}:8055"
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
     environment:
       KEY: ${KEY:-supersecretkey}
       SECRET: ${SECRET:-supersecretsecret}
@@ -35,9 +37,16 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       DIRECTUS_EXPERIMENTAL_GRAPHQL_INTROSPECTION: "true"
-      EXTENSIONS_AUTO_RELOAD: "true"
+    ports:
+      - "${PORT:-8055}:8055"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8055/server/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
     volumes:
       - ./extensions:/directus/extensions
+      - ./seed:/seed:ro  # apenas para o script de bootstrap acessar os arquivos
 
 volumes:
   pg_data:
