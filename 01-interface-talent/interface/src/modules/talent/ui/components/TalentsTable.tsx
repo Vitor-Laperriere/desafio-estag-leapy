@@ -195,8 +195,8 @@ export function TalentsTable({
               </th>
               <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
-                  label="Ciclo atual"
-                  field="current_cycle"
+                  label="Match"
+                  field="target_role_id.match"
                   currentSort={currentSort}
                   onSortChange={onSortChange}
                 />
@@ -210,6 +210,18 @@ export function TalentsTable({
             {talents.map((talent) => {
               const isOpen = !!expanded[talent.id];
               const fullName = buildName(talent);
+              const talentDetails = buildTalentDetailInfo(talent);
+              const {
+                general: targetRoleGeneral,
+                skills: targetRoleSkills,
+                match: targetRoleMatch,
+              } = buildTargetRoleInfo(talent);
+              const hasSkillComparison =
+                (targetRoleSkills.important && targetRoleSkills.important.length > 0) ||
+                (targetRoleSkills.required && targetRoleSkills.required.length > 0) ||
+                (targetRoleSkills.current && targetRoleSkills.current.length > 0);
+              const matchDisplay =
+                targetRoleMatch ?? formatMatch(talent.targetRole?.match ?? null);
               return (
                 <Fragment key={talent.id}>
                   <tr
@@ -292,13 +304,13 @@ export function TalentsTable({
                     />
                     <Cell value={formatShortDate(talent.startDate)} />
                     <Cell value={formatShortDate(talent.endDate)} />
-                    <Cell
-                      value={
-                        talent.currentCycle != null
-                          ? String(talent.currentCycle)
-                          : undefined
-                      }
-                    />
+                    <Cell>
+                      {matchDisplay ? (
+                        <Badge variant="accent">{matchDisplay}</Badge>
+                      ) : (
+                        "—"
+                      )}
+                    </Cell>
                   </tr>
                   {isOpen ? (
                     <tr
@@ -325,12 +337,113 @@ export function TalentsTable({
                               Fechar
                             </button>
                           </div>
-                          <div className="grid grid-cols-1 gap-4 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {buildTalentDetailInfo(talent).map(
-                              ({ label, value }) => (
-                                <Info key={label} label={label} value={value} />
-                              )
-                            )}
+                          <div className="grid grid-cols-1 gap-6 px-6 py-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                            <section className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl" aria-hidden>
+                                  👤
+                                </span>
+                                <div>
+                                  <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+                                    Dados do talento
+                                  </p>
+                                  <p className="text-sm text-[var(--color-subtle)]">
+                                    Informações da tabela talents
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                {talentDetails.map(({ label, value, wrap }) => (
+                                  <Info
+                                    key={label}
+                                    label={label}
+                                    value={value}
+                                    allowWrap={wrap ?? false}
+                                    {...getInfoMeta(label)}
+                                  />
+                                ))}
+                              </div>
+                            </section>
+                            <section className="space-y-3 lg:border-l lg:border-[var(--color-border)] lg:pl-6">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xl" aria-hidden>
+                                    🎯
+                                  </span>
+                                  <div>
+                                    <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+                                      Cargo alvo vinculado
+                                    </p>
+                                    <p className="text-sm text-[var(--color-subtle)]">
+                                      Dados da tabela target_roles
+                                    </p>
+                                  </div>
+                                </div>
+                                {targetRoleMatch ? (
+                                  <span
+                                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold"
+                                    style={{
+                                      borderColor: "var(--color-primary)",
+                                      background:
+                                        "color-mix(in srgb, var(--color-primary) 18%, transparent)",
+                                      color: "var(--color-primary)",
+                                    }}
+                                  >
+                                    <span aria-hidden>⚡</span>
+                                    Match {targetRoleMatch}
+                                  </span>
+                                ) : null}
+                              </div>
+                              {targetRoleGeneral.length ? (
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                  {targetRoleGeneral.map(({ label, value, wrap }) => {
+                                    const meta = getInfoMeta(label);
+                                    return (
+                                      <Info
+                                        key={`target-${label}`}
+                                        label={label}
+                                        value={value}
+                                        allowWrap={wrap ?? false}
+                                        {...meta}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
+                              {hasSkillComparison ? (
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+                                    <span aria-hidden>📊</span>
+                                    <span>Comparativo de skills</span>
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                    <SkillColumn
+                                      title="Skills importantes"
+                                      icon="⭐"
+                                      variant="primary"
+                                      items={targetRoleSkills.important}
+                                    />
+                                    <SkillColumn
+                                      title="Skills requeridas"
+                                      icon="🛠️"
+                                      variant="accent"
+                                      items={targetRoleSkills.required}
+                                    />
+                                    <SkillColumn
+                                      title="Skills atuais (target role)"
+                                      icon="📘"
+                                      variant="secondary"
+                                      items={targetRoleSkills.current}
+                                    />
+                                  </div>
+                                </div>
+                              ) : null}
+                              {!targetRoleGeneral.length && !hasSkillComparison ? (
+                                <p className="text-sm italic text-[var(--color-subtle)]">
+                                  Nenhum cargo alvo associado ao talento.
+                                </p>
+                              ) : null}
+                            </section>
                           </div>
                         </div>
                       </td>
@@ -553,31 +666,232 @@ function buildTalentDetailInfo(talent: Talent) {
     { label: "Ciclo atual", value: formatNumber(talent.currentCycle) },
     { label: "Ciclo ID", value: talent.currentCycleId },
     {
-      label: "Cargo alvo ID",
-      value: formatNumber(talent.targetRoleId ?? talent.targetRole?.id),
-    },
-    { label: "Cargo alvo", value: talent.targetRole?.name },
-    {
       label: "Líder ID",
       value: formatNumber(talent.leaderId ?? talent.leader?.id),
     },
     { label: "Líder", value: leaderSummary || undefined },
   ];
 
-  if (talent.targetRole?.description) {
-    details.push({
-      label: "Descrição do cargo",
-      value: talent.targetRole.description,
-    });
-  }
   const skills = formatSkills(talent.currentSkills);
   if (skills) {
-    details.push({ label: "Skills atuais", value: skills });
+    details.push({ label: "Skills atuais", value: skills, wrap: true });
   }
 
   return details;
 }
 
+function formatMatch(value: number | null | undefined) {
+  if (value === null || value === undefined) return undefined;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return undefined;
+  const normalized = num <= 1 ? num * 100 : num;
+  const digits = normalized < 10 ? 1 : 0;
+  return `${normalized.toFixed(digits)}%`;
+}
+
+function normalizeSkillSet(value: unknown): string[] | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
+          .filter(Boolean);
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+    return trimmed
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter((entry): entry is string => Boolean(entry));
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item === null || item === undefined) return "";
+        if (typeof item === "string") return item;
+        if (typeof item === "object") {
+          try {
+            return JSON.stringify(item);
+          } catch {
+            return String(item);
+          }
+        }
+        return String(item);
+      })
+      .filter((entry): entry is string => Boolean(entry));
+  }
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, val]) => `${key}: ${val instanceof Object ? JSON.stringify(val) : String(val)}`)
+      .filter((entry): entry is string => Boolean(entry));
+  }
+  return [String(value)];
+}
+
+type TargetRoleInfo = {
+  general: { label: string; value?: string | null; wrap?: boolean }[];
+  skills: {
+    important?: string[];
+    required?: string[];
+    current?: string[];
+  };
+  match?: string;
+};
+
+function buildTargetRoleInfo(talent: Talent): TargetRoleInfo {
+  const info: { label: string; value?: string | null; wrap?: boolean }[] = [];
+  const targetRole = talent.targetRole;
+  if (!targetRole) {
+    return {
+      general: info,
+      skills: {},
+      match: undefined,
+    };
+  }
+
+  const targetRoleId = formatNumber(
+    talent.targetRoleId ?? targetRole?.id ?? null
+  );
+  if (targetRoleId) {
+    info.push({ label: "Cargo alvo ID", value: targetRoleId });
+  }
+  if (targetRole?.name) {
+    info.push({ label: "Nome do cargo", value: targetRole.name });
+  }
+  if (targetRole?.description) {
+    info.push({
+      label: "Descrição",
+      value: targetRole.description,
+      wrap: true,
+    });
+  }
+  if (targetRole?.successCriteria) {
+    info.push({
+      label: "Critérios de sucesso",
+      value: targetRole.successCriteria,
+      wrap: true,
+    });
+  }
+  const created = formatDateTime(targetRole?.dateCreated);
+  if (created) info.push({ label: "Criado em (target role)", value: created });
+  const updated = formatDateTime(targetRole?.dateUpdated);
+  if (updated) info.push({ label: "Atualizado em (target role)", value: updated });
+  const deleted = formatDateTime(targetRole?.dateDeleted);
+  if (deleted) info.push({ label: "Excluído em (target role)", value: deleted });
+
+  if (targetRole?.talentId) {
+    info.push({
+      label: "Talent ID (target_roles)",
+      value: targetRole.talentId,
+    });
+  }
+
+  const importantSkills = normalizeSkillSet(targetRole?.importantSkills);
+  const requiredSkills = normalizeSkillSet(targetRole?.requiredSkills);
+  const targetCurrentSkills = normalizeSkillSet(targetRole?.talentCurrentSkills);
+
+  return {
+    general: info,
+    skills: {
+      important: importantSkills,
+      required: requiredSkills,
+      current: targetCurrentSkills,
+    },
+    match: formatMatch(targetRole?.match ?? null),
+  };
+}
+
+type InfoVariant = "primary" | "secondary" | "accent";
+
+type VariantStyle = {
+  card: React.CSSProperties;
+  icon: React.CSSProperties;
+  textClass: string;
+  bulletClass: string;
+};
+
+const variantStyles: Record<InfoVariant, VariantStyle> = {
+  primary: {
+    card: {
+      background: "transparent",
+      borderColor: "transparent",
+    },
+    icon: {
+      background: "transparent",
+      color: "var(--color-primary)",
+    },
+    textClass: "text-[var(--color-text)]",
+    bulletClass: "text-[var(--color-primary)]",
+  },
+  secondary: {
+    card: {
+      background: "transparent",
+      borderColor: "transparent",
+    },
+    icon: {
+      background: "transparent",
+      color: "var(--color-secondary)",
+    },
+    textClass: "text-[var(--color-text)]",
+    bulletClass: "text-[var(--color-secondary)]",
+  },
+  accent: {
+    card: {
+      background: "transparent",
+      borderColor: "transparent",
+    },
+    icon: {
+      background: "transparent",
+      color: "var(--color-accent)",
+    },
+    textClass: "text-[var(--color-text)]",
+    bulletClass: "text-[var(--color-accent)]",
+  },
+};
+
+const INFO_META: Record<string, { icon: string; variant: InfoVariant }> = {
+  ID: { icon: "🆔", variant: "secondary" },
+  "User ID": { icon: "👤", variant: "secondary" },
+  Email: { icon: "✉️", variant: "accent" },
+  Telefone: { icon: "📞", variant: "primary" },
+  "Telefone verificado": { icon: "✅", variant: "primary" },
+  Departamento: { icon: "🏢", variant: "accent" },
+  Status: { icon: "📌", variant: "accent" },
+  "Última mudança de status": { icon: "⏱️", variant: "secondary" },
+  Orquestrador: { icon: "🧩", variant: "accent" },
+  "PDI pronto": { icon: "📋", variant: "primary" },
+  Curso: { icon: "🎓", variant: "secondary" },
+  Instituição: { icon: "🏫", variant: "secondary" },
+  Início: { icon: "🚀", variant: "primary" },
+  Fim: { icon: "🏁", variant: "secondary" },
+  "Criado em": { icon: "📅", variant: "secondary" },
+  "Atualizado em": { icon: "🔄", variant: "accent" },
+  "Excluído em": { icon: "🗑️", variant: "secondary" },
+  "Reset count": { icon: "🔁", variant: "secondary" },
+  "Último reset": { icon: "⏰", variant: "accent" },
+  "Ciclo atual": { icon: "📈", variant: "primary" },
+  "Ciclo ID": { icon: "🪪", variant: "secondary" },
+  "Líder ID": { icon: "👥", variant: "secondary" },
+  Líder: { icon: "👔", variant: "primary" },
+  "Skills atuais": { icon: "🧠", variant: "accent" },
+  "Cargo alvo ID": { icon: "🎯", variant: "primary" },
+  "Nome do cargo": { icon: "💼", variant: "primary" },
+  Descrição: { icon: "📝", variant: "secondary" },
+  "Critérios de sucesso": { icon: "🏆", variant: "accent" },
+  "Criado em (target role)": { icon: "📅", variant: "secondary" },
+  "Talent ID (target_roles)": { icon: "🧾", variant: "secondary" },
+  "Atualizado em (target role)": { icon: "🔁", variant: "accent" },
+  "Excluído em (target role)": { icon: "🗑️", variant: "secondary" },
+};
+
+function getInfoMeta(label: string): { icon: string; variant: InfoVariant } {
+  return INFO_META[label] ?? { icon: "📌", variant: "secondary" };
+}
 type CellProps = {
   children?: React.ReactNode;
   value?: string | null;
@@ -622,18 +936,90 @@ function Cell({
   );
 }
 
-function Info({ label, value }: { label: string; value?: string | null }) {
+function Info({
+  label,
+  value,
+  allowWrap = false,
+  icon = "📌",
+  variant = "primary",
+}: {
+  label: string;
+  value?: string | null;
+  allowWrap?: boolean;
+  icon?: string;
+  variant?: InfoVariant;
+}) {
+  const styles = variantStyles[variant];
+  const valueClass = allowWrap
+    ? `whitespace-pre-wrap break-words ${styles.textClass}`
+    : `truncate ${styles.textClass}`;
   return (
-    <div className="min-w-0">
-      <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
-        {label}
-      </p>
-      <p
-        className="truncate text-sm font-medium text-[var(--color-text)]"
-        title={value ?? undefined}
+    <div
+      className="flex min-w-0 items-start gap-3 rounded-2xl border px-3 py-3 shadow-sm"
+      style={styles.card}
+    >
+      <span
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-base"
+        style={styles.icon}
+        aria-hidden
       >
-        {value ?? "—"}
-      </p>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+          {label}
+        </p>
+        <p className={valueClass} title={value ?? undefined}>
+          {value ?? "—"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SkillColumn({
+  title,
+  icon,
+  variant,
+  items,
+}: {
+  title: string;
+  icon: string;
+  variant: InfoVariant;
+  items?: string[];
+}) {
+  const styles = variantStyles[variant];
+  return (
+    <div
+      className="flex min-w-0 flex-col gap-3 rounded-2xl border px-3 py-3 shadow-sm"
+      style={styles.card}
+    >
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+        <span
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base"
+          style={styles.icon}
+          aria-hidden
+        >
+          {icon}
+        </span>
+        <span className={styles.textClass}>{title}</span>
+      </div>
+      {items && items.length ? (
+        <ul className="space-y-1 text-sm">
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`} className="flex items-start gap-2">
+              <span className={`mt-1 text-xs ${styles.bulletClass}`} aria-hidden>
+                ●
+              </span>
+              <span className="break-words text-[var(--color-text)]">
+                {item}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm italic text-[var(--color-subtle)]">Sem registros</p>
+      )}
     </div>
   );
 }

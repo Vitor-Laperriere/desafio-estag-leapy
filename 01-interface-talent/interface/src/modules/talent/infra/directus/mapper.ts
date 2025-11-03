@@ -38,6 +38,15 @@ type DirectusTalentRow = {
     id: number;
     name: string;
     description?: string | null;
+    date_created?: string | null;
+    date_updated?: string | null;
+    date_deleted?: string | null;
+    important_skills?: unknown;
+    success_criteria?: string | null;
+    talent_id?: string | null;
+    required_skills?: unknown;
+    talent_current_skills?: unknown;
+    match?: number | null;
   }>;
 };
 
@@ -87,6 +96,15 @@ export function mapDirectusTalent(row: DirectusTalentRow): Talent {
           id: row.target_role_id.id,
           name: row.target_role_id.name,
           description: row.target_role_id.description ?? null,
+          dateCreated: row.target_role_id.date_created ?? null,
+          dateUpdated: row.target_role_id.date_updated ?? null,
+          dateDeleted: row.target_role_id.date_deleted ?? null,
+          importantSkills: row.target_role_id.important_skills ?? null,
+          successCriteria: row.target_role_id.success_criteria ?? null,
+          talentId: row.target_role_id.talent_id ?? null,
+          requiredSkills: row.target_role_id.required_skills ?? null,
+          talentCurrentSkills: row.target_role_id.talent_current_skills ?? null,
+          match: row.target_role_id.match ?? null,
         }
       : null,
   };

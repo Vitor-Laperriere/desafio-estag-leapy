@@ -28,6 +28,7 @@ type FiltersBarProps = {
     email: string;
     courses: string[];
     cycles: string[];
+    match: number;
     institutions: string[];
     departments: string[];
     orchestrators: string[];
@@ -60,6 +61,8 @@ type FiltersBarProps = {
     onRolesChange: (values: string[]) => void;
     onNoRoleChange: (checked: boolean) => void;
     onCyclesChange: (values: string[]) => void;
+    onMatchChange: (value: number) => void;
+    onMatchChange: (value: number) => void;
     onStartFromChange: (value: string) => void;
     onStartToChange: (value: string) => void;
     onEndFromChange: (value: string) => void;
@@ -162,14 +165,7 @@ export function FiltersBar({
               onChange={handlers.onCoursesChange}
               isActive={values.courses.length > 0}
             />
-            <LabeledMultiSelect
-              id="filter-cycles"
-              label="Ciclo atual"
-              selected={values.cycles}
-              options={options.cycles.map((value) => ({ value, label: value }))}
-              onChange={handlers.onCyclesChange}
-              isActive={values.cycles.length > 0}
-            />
+            <MatchSlider value={values.match} onChange={handlers.onMatchChange} />
             <LabeledMultiSelect
               id="filter-departments"
               label="Departamentos"
@@ -398,6 +394,14 @@ export function FiltersBar({
               onChange={handlers.onInstitutionsChange}
               isActive={values.institutions.length > 0}
             />
+            <LabeledMultiSelect
+              id="advanced-filter-cycles"
+              label="Ciclo atual"
+              selected={values.cycles}
+              options={options.cycles.map((value) => ({ value, label: value }))}
+              onChange={handlers.onCyclesChange}
+              isActive={values.cycles.length > 0}
+            />
             {advancedContent}
           </div>
         </div>
@@ -618,6 +622,30 @@ function MultiSelectDropdown({ id, triggerId, labelId, selected, options, onChan
         </div>
       ) : null}
     </div>
+  );
+}
+
+type PrimaryMatchSliderProps = {
+  value: number;
+  onChange: (value: number) => void;
+};
+
+function MatchSlider({ value, onChange }: PrimaryMatchSliderProps) {
+  const clamped = Math.max(0, Math.min(value, 100));
+  return (
+    <label className="flex min-w-0 flex-col gap-1 text-sm">
+      <span className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">Match mínimo (%)</span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={clamped}
+        onChange={(event) => onChange(event.target.valueAsNumber)}
+        className="accent-[var(--color-primary)]"
+      />
+      <span className="text-xs text-[var(--color-subtle)]">{clamped}%</span>
+    </label>
   );
 }
 

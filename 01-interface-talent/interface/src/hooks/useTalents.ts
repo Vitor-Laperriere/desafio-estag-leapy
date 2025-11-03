@@ -30,7 +30,20 @@ export type Talent = {
   lastStatusChangeAt?: string | null;
   lastResetAt?: string | null;
   leader?: { id: number; department?: string | null; position?: string | null } | null;
-  targetRole?: { id: number; name: string; description?: string | null } | null;
+  targetRole?: {
+    id: number;
+    name: string;
+    description?: string | null;
+    dateCreated?: string | null;
+    dateUpdated?: string | null;
+    dateDeleted?: string | null;
+    importantSkills?: unknown;
+    successCriteria?: string | null;
+    talentId?: string | null;
+    requiredSkills?: unknown;
+    talentCurrentSkills?: unknown;
+    match?: number | null;
+  } | null;
 };
 
 export type TalentsResponse = {
@@ -92,6 +105,7 @@ export type TalentsQueryParams = {
   dateDeletedTo?: string;
   dateDeletedIsNull?: string;
   withDeleted?: boolean;
+  matchMin?: number;
 };
 
 const fetcher = async (url: string) => {
@@ -181,6 +195,9 @@ export function useTalents(params: TalentsQueryParams) {
     setString("dateDeletedTo", params.dateDeletedTo);
     setString("dateDeletedIsNull", params.dateDeletedIsNull);
     setBoolean("withDeleted", params.withDeleted);
+    if (params.matchMin !== undefined) {
+      setString("matchMin", String(params.matchMin));
+    }
 
     return search.toString();
   }, [
@@ -235,6 +252,7 @@ export function useTalents(params: TalentsQueryParams) {
     params.dateDeletedTo,
     params.dateDeletedIsNull,
     params.withDeleted,
+    params.matchMin,
   ]);
 
   const { data, error, isLoading } = useSWR<TalentsResponse>(

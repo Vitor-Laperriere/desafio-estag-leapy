@@ -47,6 +47,7 @@ export default function HomePage() {
   const [roles, setRoles] = useState<string[]>([]);
   const [noRole, setNoRole] = useState(false);
   const [cycles, setCycles] = useState<string[]>([]);
+  const [matchThreshold, setMatchThreshold] = useState(0);
   const [startFrom, setStartFrom] = useState("");
   const [startTo, setStartTo] = useState("");
   const [endFrom, setEndFrom] = useState("");
@@ -173,6 +174,7 @@ export default function HomePage() {
     setRoles([]);
     setNoRole(false);
     setCycles([]);
+    setMatchThreshold(0);
     setStartFrom("");
     setStartTo("");
     setEndFrom("");
@@ -355,6 +357,18 @@ export default function HomePage() {
         },
       });
     }
+    if (matchThreshold > 0) {
+      chips.push({
+        id: "match",
+        label: "Match",
+        value: `≥ ${matchThreshold}%`,
+        variant: "accent",
+        onRemove: () => {
+          setPage(1);
+          setMatchThreshold(0);
+        },
+      });
+    }
     if (startFrom || startTo) {
       chips.push({
         id: "start-range",
@@ -430,6 +444,7 @@ export default function HomePage() {
     statuses,
     activeFrom,
     activeTo,
+    matchThreshold,
   ]);
 
   const handleActiveToday = useCallback(() => {
@@ -464,6 +479,8 @@ export default function HomePage() {
     setEndFrom(formatDate(now));
     setEndTo(formatDate(addDays(now, 30)));
   }, []);
+
+  const matchMinParam = matchThreshold > 0 ? Number((matchThreshold / 100).toFixed(2)) : undefined;
 
   const { talents, total, isLoading, isError, errorDetail } = useTalents({
     page,
@@ -518,6 +535,7 @@ export default function HomePage() {
     dateDeletedIsNull: deletedFilter === "only" ? "false" : undefined,
     withDeleted:
       deletedFilter === "include" || deletedFilter === "only" ? true : undefined,
+    matchMin: matchMinParam,
   });
 
   const advancedContent = (
@@ -702,6 +720,7 @@ export default function HomePage() {
           email: searchEmail,
           courses,
           cycles,
+          match: matchThreshold,
           institutions,
           departments,
           orchestrators,
@@ -778,6 +797,10 @@ export default function HomePage() {
           onCyclesChange: (next) => {
             setPage(1);
             setCycles(next);
+          },
+          onMatchChange: (value) => {
+            setPage(1);
+            setMatchThreshold(value);
           },
           onStartFromChange: (value) => {
             setPage(1);

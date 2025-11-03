@@ -26,5 +26,18 @@ export type Talent = {
   lastStatusChangeAt?: string | null;
   lastResetAt?: string | null;
   leader?: { id: number; position?: string | null; department?: string | null } | null;
-  targetRole?: { id: number; name: string; description?: string | null } | null;
+  targetRole?: {
+    id: number;
+    name: string;
+    description?: string | null;
+    dateCreated?: string | null;
+    dateUpdated?: string | null;
+    dateDeleted?: string | null;
+    importantSkills?: unknown;
+    successCriteria?: string | null;
+    talentId?: string | null;
+    requiredSkills?: unknown;
+    talentCurrentSkills?: unknown;
+    match?: number | null;
+  } | null;
 };

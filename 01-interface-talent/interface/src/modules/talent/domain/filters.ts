@@ -173,6 +173,7 @@ const RawListTalentsFilter = z
       roles: pickCsv("roles"),
       missingLeader: pickBoolean("noLeader", "leader_is_null"),
       missingTargetRole: pickBoolean("noRole", "target_role_is_null"),
+      matchMin: pickNumber("matchMin"),
       resetCountMin: pickNumber("resetCountMin", "reset_count_min"),
       resetCountMax: pickNumber("resetCountMax", "reset_count_max"),
       currentCycleEq: pickNumber("currentCycle", "current_cycle"),

@@ -107,6 +107,9 @@ export function buildDirectusQuery(p: ListTalentsFilter): string {
       "true"
     );
   }
+  if (p.matchMin !== undefined) {
+    addFilter(["target_role_id", "match"], "_gte", p.matchMin);
+  }
 
   if (p.graduationCourses && p.graduationCourses.length) {
     addFilter(["graduation_course"], "_in", p.graduationCourses.join(","));
