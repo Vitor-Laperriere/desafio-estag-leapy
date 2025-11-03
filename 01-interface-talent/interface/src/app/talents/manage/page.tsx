@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
-import type { Talent } from "@/hooks/useTalents";
+import type { Talent } from "@presentation/talent/hooks/use-talents";
 
 type PdiPlanReadyValue = "true" | "false" | "null";
 

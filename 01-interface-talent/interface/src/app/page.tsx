@@ -4,13 +4,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { FiltersBar, type FilterChip, type Option } from "./_components/FiltersBar";
-import { useTalents } from "@/hooks/useTalents";
-import { TalentsTable } from "@/modules/talent/ui/components/TalentsTable";
+import { useTalents } from "@presentation/talent/hooks/use-talents";
+import { TalentsTable } from "@presentation/talent/components/talents-table";
 import {
   normalizeSearchText,
-  parseSmartSearch,
   type ParsedSearch,
-} from "@/modules/talent/application/search-intent/parser";
+} from "@shared/ai-search/smart-search.parser";
+import { createSmartSearchUseCase } from "@application/talent/usecases/smart-search.usecase";
 
 const DEPARTMENT_OPTIONS: Option[] = ["Engineering", "Design", "Product", "Marketing", "Operations"].map(
   (dept) => ({ value: dept, label: dept })
@@ -46,7 +46,7 @@ const addDays = (date: Date, amount: number) => {
 };
 
 export default function HomePage() {
-  const filtersRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -154,7 +154,7 @@ export default function HomePage() {
   }, [rolesList]);
 
   const resolveTargetRoleIds = useCallback(
-    (names: string[]) => {
+    async (names: string[]) => {
       if (!names.length) return [];
       const resolved: number[] = [];
       const seen = new Set<number>();
@@ -170,6 +170,16 @@ export default function HomePage() {
       return resolved;
     },
     [normalizedRoleMap]
+  );
+
+  const smartSearchService = useMemo(
+    () =>
+      createSmartSearchUseCase({
+        roleRepository: {
+          findIdsByNames: resolveTargetRoleIds,
+        },
+      }),
+    [resolveTargetRoleIds]
   );
 
   const cycleOptions = useMemo(() => {
@@ -219,13 +229,16 @@ export default function HomePage() {
         return;
       }
 
-      const parsed = await parseSmartSearch(trimmed, {
-        now: new Date(),
-        resolveTargetRoles: resolveTargetRoleIds,
-      });
+      try {
+        const parsed = await smartSearchService.execute(trimmed);
 
-      if (!cancelled) {
-        setSmartSearch(parsed);
+        if (!cancelled) {
+          setSmartSearch(parsed);
+        }
+      } catch {
+        if (!cancelled) {
+          setSmartSearch(null);
+        }
       }
     };
 
@@ -234,7 +247,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [generalQuery, resolveTargetRoleIds]);
+  }, [generalQuery, resolveTargetRoleIds, smartSearchService]);
 
   const resetFilters = useCallback(() => {
     setPage(1);

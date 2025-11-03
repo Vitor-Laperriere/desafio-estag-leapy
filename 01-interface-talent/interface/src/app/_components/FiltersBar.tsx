@@ -16,7 +16,7 @@ export type FilterChip = {
 };
 
 type FiltersBarProps = {
-  innerRef?: RefObject<HTMLDivElement>;
+  innerRef?: RefObject<HTMLDivElement | null>;
   resultCount: number;
   isLoading: boolean;
   chips: FilterChip[];
@@ -61,7 +61,6 @@ type FiltersBarProps = {
     onRolesChange: (values: string[]) => void;
     onNoRoleChange: (checked: boolean) => void;
     onCyclesChange: (values: string[]) => void;
-    onMatchChange: (value: number) => void;
     onMatchChange: (value: number) => void;
     onStartFromChange: (value: string) => void;
     onStartToChange: (value: string) => void;
@@ -549,8 +548,8 @@ type MultiSelectDropdownProps = {
 
 function MultiSelectDropdown({ id, triggerId, labelId, selected, options, onChange, footer, isActive }: MultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   useClickAway(() => setOpen(false), triggerRef, panelRef);
   useEffect(() => {
@@ -659,7 +658,7 @@ function MatchSlider({ value, onChange }: PrimaryMatchSliderProps) {
   );
 }
 
-function useClickAway(handler: () => void, ...refs: RefObject<HTMLElement>[]) {
+function useClickAway(handler: () => void, ...refs: RefObject<HTMLElement | null>[]) {
   useEffect(() => {
     const listener = (event: MouseEvent | FocusEvent) => {
       const target = event.target as Node;

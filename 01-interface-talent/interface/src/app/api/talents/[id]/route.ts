@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
-import { makeGetTalent } from "@/modules/talent/application/usecases/get-talent";
-import { makeUpdateTalent } from "@/modules/talent/application/usecases/update-talent";
-import { makeDeleteTalent } from "@/modules/talent/application/usecases/delete-talent";
-import { DirectusTalentRepository } from "@/modules/talent/infra/directus/repo";
+import { makeGetTalent } from "@application/talent/usecases/get-talent.usecase";
+import { makeUpdateTalent } from "@application/talent/usecases/update-talent.usecase";
+import { makeDeleteTalent } from "@application/talent/usecases/delete-talent.usecase";
+import { DirectusTalentRepository } from "@infrastructure/directus/talent/directus-talent.repository";
+import { toResult } from "@shared/result";
+import { toNextJsonResponse } from "@presentation/http/response-adapter";
 
 const repo = new DirectusTalentRepository();
 const getTalent = makeGetTalent(repo);
 const updateTalent = makeUpdateTalent(repo);
 const deleteTalent = makeDeleteTalent(repo);
-
-function formatError(err: unknown) {
-  return typeof err === "object" && err !== null && "message" in err
-    ? String((err as { message?: unknown }).message ?? err)
-    : String(err);
-}
 
 type RouteParams = { id: string };
 type RouteContext = {
@@ -26,9 +22,11 @@ async function resolveId(context: RouteContext) {
 }
 
 export async function GET(_req: Request, context: RouteContext) {
-  try {
-    const id = await resolveId(context);
-    const talent = await getTalent(id);
+  const id = await resolveId(context);
+  const result = await toResult(() => getTalent(id));
+
+  if (result.ok) {
+    const talent = result.value;
     if (!talent) {
       return NextResponse.json(
         { error: "Talento não encontrado" },
@@ -36,37 +34,30 @@ export async function GET(_req: Request, context: RouteContext) {
       );
     }
     return NextResponse.json({ data: talent });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: "Falha ao carregar talento", detail: formatError(err) },
-      { status: 400 }
-    );
   }
+  return toNextJsonResponse(result);
 }
 
 export async function PATCH(req: Request, context: RouteContext) {
-  try {
-    const id = await resolveId(context);
+  const id = await resolveId(context);
+  const result = await toResult(async () => {
     const payload = await req.json();
     const data = await updateTalent(id, payload);
-    return NextResponse.json({ data });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: "Falha ao atualizar talento", detail: formatError(err) },
-      { status: 400 }
-    );
-  }
+    return { data };
+  });
+
+  return toNextJsonResponse(result);
 }
 
 export async function DELETE(_req: Request, context: RouteContext) {
-  try {
-    const id = await resolveId(context);
+  const id = await resolveId(context);
+  const result = await toResult(async () => {
     await deleteTalent(id);
+    return null;
+  });
+
+  if (result.ok) {
     return new NextResponse(null, { status: 204 });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: "Falha ao remover talento", detail: formatError(err) },
-      { status: 400 }
-    );
   }
+  return toNextJsonResponse(result);
 }

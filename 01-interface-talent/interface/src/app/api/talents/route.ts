@@ -1,42 +1,31 @@
 // src/app/api/talents/route.ts
-import { NextResponse } from "next/server";
-import { makeListTalents } from "@/modules/talent/application/usecases/list-talents";
-import { makeCreateTalent } from "@/modules/talent/application/usecases/create-talent";
-import { DirectusTalentRepository } from "@/modules/talent/infra/directus/repo";
+import { makeListTalents } from "@application/talent/usecases/list-talents.usecase";
+import { makeCreateTalent } from "@application/talent/usecases/create-talent.usecase";
+import { DirectusTalentRepository } from "@infrastructure/directus/talent/directus-talent.repository";
+import { toResult } from "@shared/result";
+import { toNextJsonResponse } from "@presentation/http/response-adapter";
 
 const repo = new DirectusTalentRepository();
 const listTalents = makeListTalents(repo);
 const createTalent = makeCreateTalent(repo);
 
-function formatError(err: unknown) {
-  return typeof err === "object" && err !== null && "message" in err
-    ? String((err as { message?: unknown }).message ?? err)
-    : String(err);
-}
-
 export async function GET(req: Request) {
-  try {
+  const result = await toResult(async () => {
     const url = new URL(req.url);
     const params = Object.fromEntries(url.searchParams.entries());
     const { data, total } = await listTalents(params);
-    return NextResponse.json({ data, meta: { filter_count: total } });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: "Falha ao consultar talentos", detail: formatError(err) },
-      { status: 500 }
-    );
-  }
+    return { data, meta: { filter_count: total } };
+  });
+
+  return toNextJsonResponse(result);
 }
 
 export async function POST(req: Request) {
-  try {
+  const result = await toResult(async () => {
     const payload = await req.json();
     const data = await createTalent(payload);
-    return NextResponse.json({ data }, { status: 201 });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: "Falha ao criar talento", detail: formatError(err) },
-      { status: 400 }
-    );
-  }
+    return { data };
+  });
+
+  return toNextJsonResponse(result, 201);
 }
