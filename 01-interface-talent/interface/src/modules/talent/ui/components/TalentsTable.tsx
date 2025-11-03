@@ -15,6 +15,7 @@ type TalentsTableProps = {
   onPageChange: (n: number) => void;
   sort: string;
   onSortChange: (s: string) => void;
+  onLimitChange: (limit: number) => void;
 };
 
 export function TalentsTable({
@@ -28,10 +29,12 @@ export function TalentsTable({
   onPageChange,
   sort,
   onSortChange,
+  onLimitChange,
 }: TalentsTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const toggleRow = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleRow = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   if (isLoading) {
     return (
@@ -58,7 +61,9 @@ export function TalentsTable({
         <p className="text-base font-semibold text-[var(--color-secondary)]">
           Erro ao carregar talentos
         </p>
-        <p className="text-sm text-[var(--color-subtle)]">{errorDetail ?? "Tente novamente mais tarde."}</p>
+        <p className="text-sm text-[var(--color-subtle)]">
+          {errorDetail ?? "Tente novamente mais tarde."}
+        </p>
         <button
           type="button"
           className="btn-ghost mt-4"
@@ -73,9 +78,15 @@ export function TalentsTable({
   if (!talents.length) {
     return (
       <div className="card flex flex-col items-center gap-3 px-6 py-10 text-center text-sm text-[var(--color-subtle)]">
-        <span aria-hidden className="text-4xl">🗂️</span>
-        <p className="text-base font-medium text-[var(--color-text)]">Nenhum talento encontrado</p>
-        <p>Revise os filtros ou limpe a busca para visualizar novos resultados.</p>
+        <span aria-hidden className="text-4xl">
+          🗂️
+        </span>
+        <p className="text-base font-medium text-[var(--color-text)]">
+          Nenhum talento encontrado
+        </p>
+        <p>
+          Revise os filtros ou limpe a busca para visualizar novos resultados.
+        </p>
       </div>
     );
   }
@@ -84,14 +95,17 @@ export function TalentsTable({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[var(--color-subtle)]" aria-live="polite">
-        Mostrando página {page} de {totalPages} • {total} resultado(s)
-      </p>
       <div className="overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)]">
-        <table className="min-w-[1600px] w-full text-sm text-[var(--color-text)]" role="table">
+        <table
+          className="min-w-[1600px] w-full text-sm text-[var(--color-text)]"
+          role="table"
+        >
           <thead className="sticky top-0 z-10 bg-[var(--color-soft)]/80 backdrop-blur">
-            <tr role="row" className="text-left text-xs uppercase tracking-wide text-[var(--color-subtle)]">
-              <th scope="col" className="px-4 py-3">
+            <tr
+              role="row"
+              className="text-left text-xs uppercase tracking-wide text-[var(--color-subtle)]"
+            >
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Nome"
                   field="user_id.last_name"
@@ -99,7 +113,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Escolaridade"
                   field="graduation_course"
@@ -107,7 +121,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Email"
                   field="user_id.email"
@@ -115,7 +129,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Departamento"
                   field="department"
@@ -123,7 +137,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Status"
                   field="current_status"
@@ -131,7 +145,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Orquestrador"
                   field="orchestrator_state"
@@ -139,7 +153,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="PDI"
                   field="pdi_plan_ready"
@@ -147,9 +161,23 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">Líder</th>
-              <th scope="col" className="px-4 py-3">Cargo alvo</th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
+                <SortHeaderButton
+                  label="Líder"
+                  field="leader_id.position"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-2 py-3">
+                <SortHeaderButton
+                  label="Cargo alvo"
+                  field="target_role_id.name"
+                  currentSort={currentSort}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Início"
                   field="start_date"
@@ -157,7 +185,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Fim"
                   field="end_date"
@@ -165,7 +193,7 @@ export function TalentsTable({
                   onSortChange={onSortChange}
                 />
               </th>
-              <th scope="col" className="px-4 py-3">
+              <th scope="col" className="px-2 py-3">
                 <SortHeaderButton
                   label="Ciclo atual"
                   field="current_cycle"
@@ -175,7 +203,10 @@ export function TalentsTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-border)]/60" role="rowgroup">
+          <tbody
+            className="divide-y divide-[var(--color-border)]/60"
+            role="rowgroup"
+          >
             {talents.map((talent) => {
               const isOpen = !!expanded[talent.id];
               const fullName = buildName(talent);
@@ -199,7 +230,10 @@ export function TalentsTable({
                   >
                     <Cell as="th" scope="row">
                       <span className="inline-flex items-center gap-2">
-                        <span className="text-xs text-[var(--color-subtle)]" aria-hidden>
+                        <span
+                          className="text-xs text-[var(--color-subtle)]"
+                          aria-hidden
+                        >
                           {isOpen ? "▾" : "▸"}
                         </span>
                         <span className="truncate" title={fullName}>
@@ -230,7 +264,9 @@ export function TalentsTable({
                       </Badge>
                     </Cell>
                     <Cell>
-                      <Badge variant={orchestratorVariant(talent.orchestratorState)}>
+                      <Badge
+                        variant={orchestratorVariant(talent.orchestratorState)}
+                      >
                         {talent.orchestratorState ?? "—"}
                       </Badge>
                     </Cell>
@@ -239,20 +275,41 @@ export function TalentsTable({
                         {talent.pdiPlanReady ? "Sim" : "Não"}
                       </Badge>
                     </Cell>
-                    <Cell value={[talent.leader?.position, talent.leader?.department].filter(Boolean).join(" / ")} />
+                    <Cell
+                      value={[
+                        talent.leader?.position,
+                        talent.leader?.department,
+                      ]
+                        .filter(Boolean)
+                        .join(" / ")}
+                    />
                     <Cell value={talent.targetRole?.name} />
                     <Cell value={formatShortDate(talent.startDate)} />
                     <Cell value={formatShortDate(talent.endDate)} />
-                    <Cell value={talent.currentCycle != null ? String(talent.currentCycle) : undefined} />
+                    <Cell
+                      value={
+                        talent.currentCycle != null
+                          ? String(talent.currentCycle)
+                          : undefined
+                      }
+                    />
                   </tr>
                   {isOpen ? (
-                    <tr role="row" className="bg-[var(--color-card)]/80" id={`talent-details-${talent.id}`}>
+                    <tr
+                      role="row"
+                      className="bg-[var(--color-card)]/80"
+                      id={`talent-details-${talent.id}`}
+                    >
                       <td colSpan={12} className="p-0">
-                        <div className="mx-4 mb-4 -mt-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/60 shadow-lg shadow-black/20">
+                        <div className="mx-4 mb-4 mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/60 shadow-lg shadow-black/20">
                           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
                             <div>
-                              <p className="text-sm font-semibold text-[var(--color-text)]">Detalhes do talento</p>
-                              <p className="text-xs text-[var(--color-subtle)]">{fullName}</p>
+                              <p className="text-sm font-semibold text-[var(--color-text)]">
+                                Detalhes do talento
+                              </p>
+                              <p className="text-xs text-[var(--color-subtle)]">
+                                {fullName}
+                              </p>
                             </div>
                             <button
                               type="button"
@@ -263,9 +320,11 @@ export function TalentsTable({
                             </button>
                           </div>
                           <div className="grid grid-cols-1 gap-4 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {buildTalentDetailInfo(talent).map(({ label, value }) => (
-                              <Info key={label} label={label} value={value} />
-                            ))}
+                            {buildTalentDetailInfo(talent).map(
+                              ({ label, value }) => (
+                                <Info key={label} label={label} value={value} />
+                              )
+                            )}
                           </div>
                         </div>
                       </td>
@@ -278,33 +337,53 @@ export function TalentsTable({
         </table>
       </div>
 
-      <nav className="flex items-center gap-3 text-sm text-[var(--color-subtle)]" aria-label="Paginação" aria-live="polite">
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page <= 1}
-          aria-label="Página anterior"
-          aria-disabled={page <= 1}
-          rel="prev"
+      <div className="flex flex-col gap-3 px-4 pb-4 text-sm text-[var(--color-subtle)] md:flex-row md:items-center md:justify-between">
+        <nav
+          className="flex items-center gap-3"
+          aria-label="Paginação"
+          aria-live="polite"
         >
-          ← Anterior
-        </button>
-        <span>
-          Página {page} / {totalPages}
-        </span>
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-          disabled={page >= totalPages}
-          aria-label="Próxima página"
-          aria-disabled={page >= totalPages}
-          rel="next"
-        >
-          Próxima →
-        </button>
-      </nav>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => onPageChange(Math.max(1, page - 1))}
+            disabled={page <= 1}
+            aria-label="Página anterior"
+            aria-disabled={page <= 1}
+            rel="prev"
+          >
+            ← Anterior
+          </button>
+          <span>
+            Página {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+            disabled={page >= totalPages}
+            aria-label="Próxima página"
+            aria-disabled={page >= totalPages}
+            rel="next"
+          >
+            Próxima →
+          </button>
+        </nav>
+        <label className="flex items-center gap-2 text-xs uppercase tracking-wide">
+          <span>Por página</span>
+          <select
+            className="select w-24"
+            value={limit}
+            onChange={(event) => onLimitChange(Number(event.target.value))}
+          >
+            {[5, 10, 20, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
     </div>
   );
 }
@@ -316,7 +395,12 @@ type SortHeaderButtonProps = {
   onSortChange: (sort: string) => void;
 };
 
-function SortHeaderButton({ label, field, currentSort, onSortChange }: SortHeaderButtonProps) {
+function SortHeaderButton({
+  label,
+  field,
+  currentSort,
+  onSortChange,
+}: SortHeaderButtonProps) {
   const isAsc = currentSort === field;
   const isDesc = currentSort === `-${field}`;
   const icon = isAsc ? "▲" : isDesc ? "▼" : "↕";
@@ -338,7 +422,13 @@ function SortHeaderButton({ label, field, currentSort, onSortChange }: SortHeade
 
 type BadgeVariant = "primary" | "secondary" | "accent" | "muted";
 
-function Badge({ children, variant = "muted" }: { children: React.ReactNode; variant?: BadgeVariant }) {
+function Badge({
+  children,
+  variant = "muted",
+}: {
+  children: React.ReactNode;
+  variant?: BadgeVariant;
+}) {
   return (
     <span
       className="chip chip--badge"
@@ -439,7 +529,10 @@ function buildTalentDetailInfo(talent: Talent) {
     { label: "Telefone verificado", value: talent.verifiedPhoneNumber },
     { label: "Departamento", value: talent.department },
     { label: "Status", value: talent.currentStatus },
-    { label: "Última mudança de status", value: formatDateTime(talent.lastStatusChangeAt) },
+    {
+      label: "Última mudança de status",
+      value: formatDateTime(talent.lastStatusChangeAt),
+    },
     { label: "Orquestrador", value: talent.orchestratorState },
     { label: "PDI pronto", value: formatBoolean(talent.pdiPlanReady) },
     { label: "Curso", value: talent.graduationCourse },
@@ -453,14 +546,23 @@ function buildTalentDetailInfo(talent: Talent) {
     { label: "Último reset", value: formatDateTime(talent.lastResetAt) },
     { label: "Ciclo atual", value: formatNumber(talent.currentCycle) },
     { label: "Ciclo ID", value: talent.currentCycleId },
-    { label: "Cargo alvo ID", value: formatNumber(talent.targetRoleId ?? talent.targetRole?.id) },
+    {
+      label: "Cargo alvo ID",
+      value: formatNumber(talent.targetRoleId ?? talent.targetRole?.id),
+    },
     { label: "Cargo alvo", value: talent.targetRole?.name },
-    { label: "Líder ID", value: formatNumber(talent.leaderId ?? talent.leader?.id) },
+    {
+      label: "Líder ID",
+      value: formatNumber(talent.leaderId ?? talent.leader?.id),
+    },
     { label: "Líder", value: leaderSummary || undefined },
   ];
 
   if (talent.targetRole?.description) {
-    details.push({ label: "Descrição do cargo", value: talent.targetRole.description });
+    details.push({
+      label: "Descrição do cargo",
+      value: talent.targetRole.description,
+    });
   }
   const skills = formatSkills(talent.currentSkills);
   if (skills) {
@@ -470,10 +572,32 @@ function buildTalentDetailInfo(talent: Talent) {
   return details;
 }
 
-function Cell({ children, value, as: Element = "td", scope }: { children?: React.ReactNode; value?: string | null; as?: "td" | "th"; scope?: "row" | "col" }) {
-  const content = children ?? (value ? <span className="truncate" title={value}>{value}</span> : "—");
+function Cell({
+  children,
+  value,
+  as: Element = "td",
+  scope,
+}: {
+  children?: React.ReactNode;
+  value?: string | null;
+  as?: "td" | "th";
+  scope?: "row" | "col";
+}) {
+  const content =
+    children ??
+    (value ? (
+      <span className="truncate" title={value}>
+        {value}
+      </span>
+    ) : (
+      "—"
+    ));
   return (
-    <Element scope={scope} className="px-4 py-3 text-sm text-[var(--color-text)]" title={typeof value === "string" ? value : undefined}>
+    <Element
+      scope={scope}
+      className="px-2 py-3 text-left text-sm text-[var(--color-text)]"
+      title={typeof value === "string" ? value : undefined}
+    >
       {content}
     </Element>
   );
@@ -482,8 +606,13 @@ function Cell({ children, value, as: Element = "td", scope }: { children?: React
 function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</p>
-      <p className="truncate text-sm font-medium text-[var(--color-text)]" title={value ?? undefined}>
+      <p className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
+        {label}
+      </p>
+      <p
+        className="truncate text-sm font-medium text-[var(--color-text)]"
+        title={value ?? undefined}
+      >
         {value ?? "—"}
       </p>
     </div>
