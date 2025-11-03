@@ -851,7 +851,7 @@ type AdvancedInputProps = {
 function AdvancedInput({ label, value, onChange, type = "text" }: AdvancedInputProps) {
   const active = value.trim().length > 0;
   return (
-    <label className="flex flex-col gap-1 text-sm" data-active={active ? "true" : undefined}>
+    <label className="flex min-w-0 flex-col gap-1 text-sm" data-active={active ? "true" : undefined}>
       <span className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</span>
       <input
         type={type}

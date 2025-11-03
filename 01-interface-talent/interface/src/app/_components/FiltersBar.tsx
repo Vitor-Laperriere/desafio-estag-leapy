@@ -134,7 +134,7 @@ export function FiltersBar({
       >
         <fieldset className="space-y-4">
           <legend className="sr-only">Filtros principais</legend>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             <LabeledInput
               id={generalId}
               label="Busca geral"
@@ -153,7 +153,7 @@ export function FiltersBar({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-4">
             <LabeledMultiSelect
               id="filter-courses"
               label="Curso(s)"
@@ -265,7 +265,7 @@ export function FiltersBar({
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <DateRange
               label="Vigência - início"
               fromId={startFromId}
@@ -389,7 +389,7 @@ export function FiltersBar({
           <span className="text-xs text-[var(--color-subtle)]">{advancedOpen ? "Ocultar" : "Mostrar"}</span>
         </summary>
         <div className="mt-4 text-sm text-[var(--color-text)]">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-4">
             <LabeledMultiSelect
               id="advanced-filter-institutions"
               label="Instituição(ões)"
@@ -421,7 +421,7 @@ function LabeledInput({ id, label, placeholder, value, type = "text", onChange, 
   return (
     <label
       htmlFor={id}
-      className="flex flex-col gap-1 text-sm"
+      className="flex min-w-0 flex-col gap-1 text-sm"
       data-active={active ? "true" : undefined}
     >
       <span className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</span>
@@ -453,7 +453,7 @@ function DateRange({ label, fromId, toId, fromValue, toValue, onFromChange, onTo
   const active = isActive ?? Boolean(fromValue || toValue);
   return (
     <fieldset
-      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2"
+      className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-soft)]/50 px-3 py-2"
       data-active={active ? "true" : undefined}
     >
       <legend className="px-1 text-xs uppercase tracking-wide text-[var(--color-subtle)]">{label}</legend>
@@ -504,7 +504,7 @@ function LabeledMultiSelect({ id, label, selected, options, onChange, footer, is
   const labelId = useId();
   const active = isActive ?? selected.length > 0;
   return (
-    <div className="flex flex-col gap-1 text-sm" data-active={active ? "true" : undefined}>
+    <div className="flex min-w-0 flex-col gap-1 text-sm" data-active={active ? "true" : undefined}>
       <span id={labelId} className="text-xs uppercase tracking-wide text-[var(--color-subtle)]">
         {label}
       </span>
