@@ -14,4 +14,4 @@ COPY runner.yml ./runner.yml
 # (Os testes não precisam ir para a imagem para execução da solução)
 
 # Importante: manter STDIN aberto e saída no STDOUT
-ENTRYPOINT ["node", "src/index.js"]
+CMD ["node", "src/index.js"]
