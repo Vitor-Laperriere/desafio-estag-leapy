@@ -4,9 +4,12 @@
   "private": true,
   "description": "Desafio Coin Change - CLI com contrato de I/O via JSON.",
   "main": "src/index.js",
-   "scripts": {
+  "scripts": {
     "start": "node src/index.js",
-    "test": "node tests/harness.js",
+    "test": "node --test tests/unit/minCoins.test.js tests/integration/cli.test.js && node tests/harness.js",
+    "test:unit": "node --test tests/unit/minCoins.test.js",
+    "test:integration": "node --test tests/integration/cli.test.js",
+    "test:harness": "node tests/harness.js",
     "test:extra": "node tests/extra-harness.js",
     "test:extra:stress": "STRESS=1 node tests/extra-harness.js",
     "test:extra:fast": "RANDOM_N=20 RANDOM_MAX_AMOUNT=1000 node tests/extra-harness.js"
