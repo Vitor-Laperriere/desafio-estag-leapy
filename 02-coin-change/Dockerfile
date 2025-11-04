@@ -5,8 +5,10 @@ WORKDIR /app
 # Copia apenas o essencial primeiro para aproveitar cache
 COPY package.json ./
 
-# Instala todas as dependências (inclui dev para o harness dos testes)
-RUN npm install
+
+# Instala todas as dependências e cria um link global (/node_modules) para o harness montado em /tests
+RUN npm install && ln -s /app/node_modules /node_modules
+
 
 # Copia o restante
 COPY src ./src
