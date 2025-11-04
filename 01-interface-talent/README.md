@@ -2,89 +2,129 @@
 
 Construa uma interface com lista de talentos, filtros e paginação usando os dados do Postgres/Directus deste projeto (bônus por usar Next.js).
 
-Você deve fornecer instruções claras de como rodar o projeto (back + front). Sem essas instruções, o projeto não será avaliado.
-
-## Objetivo
-
-- Listagem de talentos com:
-  - Barra de busca por `directus_users.email` (via join com `talents.user_id -> directus_users.id`)
-  - Filtros (quanto mais, melhor pontuação):
-    - `department`, `current_status`, `pdi_plan_ready`, `orchestrator_state`
-    - intervalo `start_date`/`end_date`
-    - `leader_id`, `target_role_id`
-  - Ordenação: por `date_updated` (desc) e opcionalmente outras
-  - Paginação server-side
-- Exibir contagem de resultados, estado de carregamento e erros
-- Responsividade e acessibilidade
-
-## Stack
-
-- Backend de dados: Postgres + Directus (fornecidos via docker-compose)
-- Frontend: livre (bônus: Next.js + TypeScript)
-- Integração: usar API REST/GraphQL do Directus ou um BFF (ex.: Next.js Route Handlers)
-
 ## Como rodar localmente
 
-1. Pré-requisitos: Docker e Docker Compose
-2. Copie o env exemplo e ajuste portas/credenciais se necessário:
+### Pré-requisitos
+1. Docker e Docker Compose
+2. Node.js 18+ (para rodar o script de bootstrap e o Next.js)
+
+### Modo rápido (recomendado)
+1. Dentro da pasta do projeto
 
 ```bash
-cp directus/.env.example directus/.env
+npm run bootstrap
 ```
 
-3. Suba os serviços:
+2. Aguarde o Directus iniciar. O `schema.sql` e `seed.sql` serão aplicados automaticamente (ver compose).
+
+3. Se tudo certo, você verá:
+
+- Postgres + Directus “healthy”
+
+- schema.sql + seed.sql aplicados
+
+- Token configurado e permissões criadas
+
+- Arquivo 01-interface-talent/interface/.env.local gerado
+
+4. Subir o front
+
 
 ```bash
-docker compose -f directus/docker-compose.yml up -d --build
+cd 01-interface-talent/interface
 ```
 
-4. Aguarde o Directus iniciar. O `schema.sql` e `seed.sql` serão aplicados automaticamente (ver compose).
-5. Use os exemplos em `api/rest.http` para testar endpoints/filters.
+```bash
+npm i
+```
 
+```bash
+npm run dev
+```
+### Modo manual (caso falhe o modo rápido)
+Use este caminho se o bootstrap falhar por algum motivo.
+#### 2.1 Subir o Directus + Postgres
+```bash
+docker compose -f 01-interface-talent/directus/docker-compose.yml up -d --build --remove-orphans
+```
+Verifique o health check do Directus:
+```bash
+curl -s http://localhost:8055/server/health
+```
+Resultado esperado:
+```json
+{"status":"ok"}
+```
+#### 2.2 Aplicar `schema.sql` e `seed.sql`
+Para ser cross-platform (funciona bem no Windows/WSL), usamos `docker cp` para enviar os arquivos ao container.
+Copie os arquivos para dentro do container do Postgres:
+```bash
+docker cp 01-interface-talent/directus/seed/schema.sql leapy_pg:/tmp/schema.sql
+docker cp 01-interface-talent/directus/seed/seed.sql   leapy_pg:/tmp/seed.sql
+```
+Execute os scripts no banco:
+```bash
+docker exec leapy_pg psql -U postgres -d leapy -v ON_ERROR_STOP=1 -f /tmp/schema.sql
+docker exec leapy_pg psql -U postgres -d leapy -v ON_ERROR_STOP=1 -f /tmp/seed.sql
+```
+Confirme se ~5.000 talentos foram carregados:
+```bash
+docker exec leapy_pg psql -U postgres -d leapy -c "select count(*) from public.talents where date_deleted is null;"
+```
+#### 2.3 Criar token
+Crie um token estático via SQL (simples e rápido):
+```bash
+docker exec leapy_pg psql -U postgres -d leapy -c \
+  "update public.directus_users set token='dev-admin-token' where email='admin@example.com';"
+```
+Defina o token como variável de ambiente:
+```bash
+PAT=dev-admin-token
+```
+Teste o token:
+```bash
+curl -s -H "Authorization: Bearer $PAT" http://localhost:8055/users/me
+```
+O retorno deve conter os dados do usuário admin.
+Descubra a role associada ao token:
+```bash
+ROLE_ID=$(curl -s -H "Authorization: Bearer $PAT" http://localhost:8055/users/me | jq -r '.data.role')
+```
+#### 2.4 Criar permissão read para as coleções
+O script abaixo é idempotente e garante permissão de leitura para as três coleções principais:
+```bash
+for COL in talents target_roles internship_leaders; do
+  HAS=$(curl -s -H "Authorization: Bearer $PAT" \
+    "http://localhost:8055/permissions?filter[role][_eq]=$ROLE_ID&filter[collection][_eq]=$COL&filter[action][_eq]=read&limit=-1" \
+    | jq '.data | length')
+  if [ "$HAS" = "0" ]; then
+    curl -s -X POST http://localhost:8055/permissions \
+      -H "Authorization: Bearer $PAT" -H "content-type: application/json" \
+      -d "{\"role\":\"$ROLE_ID\",\"collection\":\"$COL\",\"action\":\"read\",\"permissions\":null,\"fields\":\"*\"}" > /dev/null
+  fi
+done
+```
+Teste a leitura:
+```bash
+curl -s -H "Authorization: Bearer $PAT" "http://localhost:8055/items/talents?limit=1&fields=id"
+```
+Resultado esperado:
+```json
+{"data":[{"id":"..."}]}
+```
+#### 2.5 Criar `.env.local` do front e rodar
+```bash
+cat > 01-interface-talent/interface/.env.local <<EOF
+DIRECTUS_URL=http://localhost:8055
+DIRECTUS_TOKEN=$PAT
+DEFAULT_PAGE_SIZE=10
+EOF
+```
+```bash
+cd 01-interface-talent/interface
+npm i
+npm run dev
+```
+Abra `http://localhost:3000`.
 ## Esquema e Dados
-
-- Os schemas reais estão em `directus/seed/schema.sql`:
-  - `public.talents`
-  - `public.internship_leaders`
-  - `public.target_roles`
-  - (o Directus provisiona `directus_users`)
-- Os dados fictícios devem ser gerados em `directus/seed/seed.sql` (~100 talentos, com relacionamentos válidos).
-
-Observação: candidatos que não usarem Directus devem criar uma tabela de usuários compatível com o campo de busca por email (join por `user_id`).
-
-## Directus — Dicas e Referências
-
-- Documentação oficial: [Directus Documentation](https://directus.io/docs/)
-- API: consulte os endpoints REST/GraphQL e autenticação (tokens) na doc.
-- Busca por email: é comum expor o relacionamento com usuários via `fields=*,user_id.email`.
-- CORS/ENV: ajuste `PUBLIC_URL`, tokens e origens conforme seu frontend.
-
-## Extensions Customizadas (Opcional)
-
-Você pode estender o Directus criando extensions customizadas no diretório `directus/extensions/`.
-
-### Tipos de Extensions Disponíveis
-
-- **API Endpoints**: [criar rotas API customizadas](https://directus.io/docs/guides/extensions/api-extensions/endpoints)
-- **Event Hooks**: [executar código durante eventos](https://directus.io/docs/guides/extensions/api-extensions/hooks)
-- **Bundles**: [agrupar múltiplas extensions](https://directus.io/docs/guides/extensions/bundles)
-
-Consulte `directus/extensions/README.md` para instruções detalhadas sobre como criar e desenvolver extensions.
-
-**Nota**: Extensions são opcionais mas são valorizadas na avaliação, especialmente para cenários que requerem lógica de backend customizada além da API padrão do Directus.
-
-## Requisitos Técnicos
-
-- Debounce na busca, paginação server-side, evitar N+1
-- Tratamento de erros e estados vazios
-- Qualidade de código, organização e documentação
-- CORS e ENV configurados corretamente para integração frontend-backend
-
-## Entrega
-
-- Código + README com instruções claras de setup (back + front), variáveis de ambiente e scripts. Sem essas instruções, o projeto não será avaliado
-- Abra um PR com descrição das decisões, trade-offs e, se possível, screenshots/GIFs
-
-## Exemplos de Endpoints
-
-Consulte `api/rest.http` para exemplos de filtros, paginação e join para buscar por email.
+```bash
