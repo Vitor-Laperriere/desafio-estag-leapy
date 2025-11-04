@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+     "bootstrap": "node tools/bootstrap.mjs",
+    "bootstrap:seed": "node tools/bootstrap.mjs --seed-only",
+    "bootstrap:clean": "docker compose -f 01-interface-talent/directus/docker-compose.yml down -v"
+
   },
   "dependencies": {
     "next": "16.0.1",
